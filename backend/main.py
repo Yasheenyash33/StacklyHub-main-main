@@ -397,7 +397,7 @@ async def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session
 
 @app.delete("/users/{user_id}")
 async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    # Handle CORS preflight
+     # Handle CORS preflight
     if request.method == "OPTIONS":
         response = JSONResponse(content={})
         origin = request.headers.get("origin")
@@ -407,7 +407,6 @@ async def delete_user(user_id: int, request: Request, db: Session = Depends(get_
             response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
-
     if current_user.role.value != "admin":
         raise HTTPException(status_code=403, detail="Only admins can delete users")
 
@@ -424,13 +423,14 @@ async def delete_user(user_id: int, request: Request, db: Session = Depends(get_
         }
     })
 
-    # Create response with CORS headers
+# Create response with CORS headers
     response = JSONResponse(content={"message": "User deleted successfully"})
     origin = request.headers.get("origin")
     if origin in origins:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
+    return {"message": "User deleted successfully"}     
 
 # Session routes
 @app.get("/sessions/", response_model=List[schemas.Session])
