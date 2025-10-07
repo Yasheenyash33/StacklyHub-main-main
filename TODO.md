@@ -1,0 +1,4 @@
+- [x] Remove password field from UserCreate schema in backend/schemas.py
+- [x] Remove password from formData in CreateUserModal.jsx
+- [ ] Test user creation to ensure no more 422 validation error
+- [ ] Restart backend if needed for schema changes to take effect
