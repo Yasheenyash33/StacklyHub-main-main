@@ -32,7 +32,6 @@ class User(Base):
 
     # Relationships
     sessions_as_trainer = relationship("Session", back_populates="trainer", foreign_keys="Session.trainer_id")
-    sessions_as_trainee = relationship("Session", back_populates="trainee", foreign_keys="Session.trainee_id")
 
     @hybrid_property
     def name(self):
@@ -45,7 +44,6 @@ class Session(Base):
     title = Column(String(100), nullable=False)
     description = Column(String(500))
     trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    trainee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     scheduled_date = Column(DateTime, nullable=False, index=True)
     duration_minutes = Column(Integer, nullable=False)
     status = Column(Enum(SessionStatus), default=SessionStatus.scheduled, index=True)
@@ -55,7 +53,19 @@ class Session(Base):
 
     # Relationships
     trainer = relationship("User", back_populates="sessions_as_trainer", foreign_keys=[trainer_id])
-    trainee = relationship("User", back_populates="sessions_as_trainee", foreign_keys=[trainee_id])
+    trainees = relationship("SessionTrainee", back_populates="session")
+
+class SessionTrainee(Base):
+    __tablename__ = "session_trainees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False, index=True)
+    trainee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    session = relationship("Session", back_populates="trainees")
+    trainee = relationship("User")
 
 class PasswordChangeLog(Base):
     __tablename__ = "password_change_logs"

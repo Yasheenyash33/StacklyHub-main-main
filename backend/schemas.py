@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, computed_field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
 
 class UserRole(str, Enum):
@@ -51,7 +51,7 @@ class SessionBase(BaseModel):
     title: str
     description: Optional[str] = None
     trainer_id: int
-    trainee_id: int
+    trainees: List[int] = []
     scheduled_date: datetime
     duration_minutes: int
     status: SessionStatus = SessionStatus.scheduled
@@ -64,7 +64,7 @@ class SessionUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     trainer_id: Optional[int] = None
-    trainee_id: Optional[int] = None
+    trainees: Optional[List[int]] = None
     scheduled_date: Optional[datetime] = None
     duration_minutes: Optional[int] = None
     status: Optional[SessionStatus] = None
@@ -72,6 +72,22 @@ class SessionUpdate(BaseModel):
 
 class Session(SessionBase):
     id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class SessionWithTrainees(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    trainer_id: int
+    trainees: List[User] = []
+    scheduled_date: datetime
+    duration_minutes: int
+    status: SessionStatus
+    class_link: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

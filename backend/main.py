@@ -405,27 +405,46 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), current_user:
     return {"message": "User deleted successfully"}
 
 # Session routes
-@app.get("/sessions/", response_model=List[schemas.Session])
+@app.get("/sessions/", response_model=List[schemas.SessionWithTrainees])
 def read_sessions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     logging.info(f"read_sessions called by user {current_user.username} with role {current_user.role}")
     sessions = crud.get_sessions(db, skip=skip, limit=limit)
-    logging.info(f"Retrieved {len(sessions)} sessions")
+    # Populate trainees
+    result = []
+    for session in sessions:
+        session_trainees = crud.get_session_trainees(db, session.id)
+        trainees = [st.trainee for st in session_trainees]
+        result.append({
+            **session.__dict__,
+            'trainees': trainees
+        })
+    logging.info(f"Retrieved {len(result)} sessions")
     logging.info("read_sessions completed")
-    return sessions
+    return result
 
-@app.get("/sessions/{session_id}", response_model=schemas.Session)
+@app.get("/sessions/{session_id}", response_model=schemas.SessionWithTrainees)
 def read_session(session_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     session = crud.get_session(db, session_id=session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    return session
+    # Populate trainees
+    session_trainees = crud.get_session_trainees(db, session.id)
+    trainees = [st.trainee for st in session_trainees]
+    return {
+        **session.__dict__,
+        'trainees': trainees
+    }
 
-@app.post("/sessions/", response_model=schemas.Session)
+@app.post("/sessions/", response_model=schemas.SessionWithTrainees)
 async def create_session(session: schemas.SessionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role.value not in ["admin", "trainer"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     created_session = crud.create_session(db, session)
+
+    # Populate trainees for response
+    session_trainees = crud.get_session_trainees(db, created_session.id)
+    trainees = [st.trainee for st in session_trainees]
 
     # Broadcast session creation event
     await manager.broadcast({
@@ -433,13 +452,17 @@ async def create_session(session: schemas.SessionCreate, db: Session = Depends(g
         "data": {
             "session_id": created_session.id,
             "status": created_session.status.value,
-            "updated_at": created_session.updated_at.isoformat()
+            "updated_at": created_session.updated_at.isoformat(),
+            "trainees": [t.id for t in trainees]
         }
     })
 
-    return created_session
+    return {
+        **created_session.__dict__,
+        'trainees': trainees
+    }
 
-@app.put("/sessions/{session_id}", response_model=schemas.Session)
+@app.put("/sessions/{session_id}", response_model=schemas.SessionWithTrainees)
 async def update_session(session_id: int, session_update: schemas.SessionUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role.value not in ["admin", "trainer"]:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -448,17 +471,82 @@ async def update_session(session_id: int, session_update: schemas.SessionUpdate,
     if updated_session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    # Populate trainees for response
+    session_trainees = crud.get_session_trainees(db, updated_session.id)
+    trainees = [st.trainee for st in session_trainees]
+
     # Broadcast session update event
     await manager.broadcast({
         "type": "session_updated",
         "data": {
             "session_id": session_id,
             "status": updated_session.status.value,
-            "updated_at": updated_session.updated_at.isoformat()
+            "updated_at": updated_session.updated_at.isoformat(),
+            "trainees": [t.id for t in trainees]
         }
     })
 
-    return updated_session
+    return {
+        **updated_session.__dict__,
+        'trainees': trainees
+    }
+
+@app.post("/sessions/{session_id}/trainees/{trainee_id}")
+async def add_trainee_to_session(session_id: int, trainee_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.value not in ["admin", "trainer"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Check if session exists
+    session = crud.get_session(db, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Check if trainee exists and is a trainee
+    trainee = crud.get_user(db, trainee_id)
+    if not trainee or trainee.role != models.UserRole.trainee:
+        raise HTTPException(status_code=400, detail="Invalid trainee")
+
+    added = crud.add_trainee_to_session(db, session_id, trainee_id)
+    if not added:
+        raise HTTPException(status_code=400, detail="Trainee already in session")
+
+    # Broadcast session update event
+    await manager.broadcast({
+        "type": "trainee_added_to_session",
+        "data": {
+            "session_id": session_id,
+            "trainee_id": trainee_id,
+            "updated_at": session.updated_at.isoformat()
+        }
+    })
+
+    return {"message": "Trainee added to session"}
+
+@app.delete("/sessions/{session_id}/trainees/{trainee_id}")
+async def remove_trainee_from_session(session_id: int, trainee_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.value not in ["admin", "trainer"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Check if session exists
+    session = crud.get_session(db, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    removed = crud.remove_trainee_from_session(db, session_id, trainee_id)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Trainee not in session")
+
+    # Broadcast session update event
+    await manager.broadcast({
+        "type": "trainee_removed_from_session",
+        "data": {
+            "session_id": session_id,
+            "trainee_id": trainee_id,
+            "updated_at": session.updated_at.isoformat()
+        }
+    })
+
+    return {"message": "Trainee removed from session"}
 
 @app.delete("/sessions/{session_id}")
 async def delete_session(session_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

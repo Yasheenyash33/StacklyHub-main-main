@@ -155,10 +155,16 @@ export function AuthProvider({ children }) {
           setSessions(prev => [...prev, message.data]);
           break;
         case 'session_updated':
-          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, status: message.data.status, updated_at: message.data.updated_at } : s));
+          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, status: message.data.status, updated_at: message.data.updated_at, trainees: message.data.trainees || s.trainees } : s));
           break;
         case 'session_deleted':
           setSessions(prev => prev.filter(s => s.id !== message.data.session_id));
+          break;
+        case 'trainee_added_to_session':
+          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, trainees: [...(s.trainees || []), message.data.trainee_id] } : s));
+          break;
+        case 'trainee_removed_from_session':
+          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, trainees: (s.trainees || []).filter(id => id !== message.data.trainee_id) } : s));
           break;
         case 'student_assigned':
         case 'student_unassigned':

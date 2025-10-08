@@ -1,6 +1,13 @@
-- [x] Modify delete_user function in backend/crud.py to delete related records before deleting the user:
-  - Delete PasswordChangeLog entries where user_id or performed_by matches the user_id
-  - Delete AssignedStudent assignments where student_id or teacher_id matches the user_id
-  - Delete Session records where trainer_id or trainee_id matches the user_id
-  - Then delete the user
-- [x] Test the deletion to ensure no integrity errors (code change implemented to delete related records first)
+# TODO: Implement Session Creation with Multiple Trainees and Google Meet Link
+
+## Completed Tasks
+- [x] Update database model: Add SessionTrainee association table for many-to-many relationship.
+- [x] Update schemas: Modify Session schemas to include trainees list.
+- [x] Update CRUD: Modify create_session and add functions for managing trainees in sessions.
+- [x] Update CreateSessionModal: Allow selecting multiple trainees and add Google Meet link input.
+- [x] Update session fetching: Ensure sessions include trainees data.
+- [x] Add endpoint for adding trainee to existing session.
+- [x] Update dashboards if needed to handle new data structure.
+- [x] Run database migration.
+- [x] Test session creation with multiple trainees.
+- [x] Test real-time updates.

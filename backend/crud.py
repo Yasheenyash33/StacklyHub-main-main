@@ -79,10 +79,10 @@ def delete_user(db: Session, user_id: int):
         db.query(models.AssignedStudent).filter(
             (models.AssignedStudent.student_id == user_id) | (models.AssignedStudent.teacher_id == user_id)
         ).delete()
-        # Delete Session records
-        db.query(models.Session).filter(
-            (models.Session.trainer_id == user_id) | (models.Session.trainee_id == user_id)
-        ).delete()
+        # Delete SessionTrainee records
+        db.query(models.SessionTrainee).filter(models.SessionTrainee.trainee_id == user_id).delete()
+        # Delete Session records where user is trainer
+        db.query(models.Session).filter(models.Session.trainer_id == user_id).delete()
         # Now delete the user
         db.delete(db_user)
         db.commit()
@@ -174,10 +174,19 @@ def get_sessions_by_status(db: Session, status: models.SessionStatus):
     return db.query(models.Session).filter(models.Session.status == status).all()
 
 def create_session(db: Session, session: schemas.SessionCreate):
-    db_session = models.Session(**session.dict())
+    session_data = session.dict()
+    trainees = session_data.pop('trainees', [])
+    db_session = models.Session(**session_data)
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
+
+    # Add trainees
+    for trainee_id in trainees:
+        session_trainee = models.SessionTrainee(session_id=db_session.id, trainee_id=trainee_id)
+        db.add(session_trainee)
+    db.commit()
+
     return db_session
 
 def update_session(db: Session, session_id: int, session_update: schemas.SessionUpdate):
@@ -186,17 +195,58 @@ def update_session(db: Session, session_id: int, session_update: schemas.Session
         return None
 
     update_data = session_update.dict(exclude_unset=True)
+    trainees = update_data.pop('trainees', None)
+
     for field, value in update_data.items():
         setattr(db_session, field, value)
+
+    if trainees is not None:
+        # Remove existing trainees
+        db.query(models.SessionTrainee).filter(models.SessionTrainee.session_id == session_id).delete()
+        # Add new trainees
+        for trainee_id in trainees:
+            session_trainee = models.SessionTrainee(session_id=session_id, trainee_id=trainee_id)
+            db.add(session_trainee)
 
     db_session.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_session)
     return db_session
 
+def add_trainee_to_session(db: Session, session_id: int, trainee_id: int):
+    # Check if already added
+    existing = db.query(models.SessionTrainee).filter(
+        models.SessionTrainee.session_id == session_id,
+        models.SessionTrainee.trainee_id == trainee_id
+    ).first()
+    if existing:
+        return existing
+
+    session_trainee = models.SessionTrainee(session_id=session_id, trainee_id=trainee_id)
+    db.add(session_trainee)
+    db.commit()
+    db.refresh(session_trainee)
+    return session_trainee
+
+def remove_trainee_from_session(db: Session, session_id: int, trainee_id: int):
+    session_trainee = db.query(models.SessionTrainee).filter(
+        models.SessionTrainee.session_id == session_id,
+        models.SessionTrainee.trainee_id == trainee_id
+    ).first()
+    if session_trainee:
+        db.delete(session_trainee)
+        db.commit()
+        return True
+    return False
+
+def get_session_trainees(db: Session, session_id: int):
+    return db.query(models.SessionTrainee).filter(models.SessionTrainee.session_id == session_id).all()
+
 def delete_session(db: Session, session_id: int):
     db_session = db.query(models.Session).filter(models.Session.id == session_id).first()
     if db_session:
+        # Delete associated trainees
+        db.query(models.SessionTrainee).filter(models.SessionTrainee.session_id == session_id).delete()
         db.delete(db_session)
         db.commit()
         return True

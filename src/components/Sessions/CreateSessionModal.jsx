@@ -7,9 +7,10 @@ export function CreateSessionModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    trainee_id: '',
+    trainees: [],
     scheduled_date: '',
-    duration_minutes: 60
+    duration_minutes: 60,
+    class_link: ''
   });
 
   const handleSubmit = async (e) => {
@@ -20,7 +21,7 @@ export function CreateSessionModal({ onClose, onSuccess }) {
       trainer_id: user.id,
       scheduled_date: new Date(formData.scheduled_date).toISOString(),
       duration_minutes: parseInt(formData.duration_minutes),
-      trainee_id: parseInt(formData.trainee_id)
+      trainees: formData.trainees.map(id => parseInt(id))
     };
 
     const result = await createSession(sessionData);
@@ -32,10 +33,27 @@ export function CreateSessionModal({ onClose, onSuccess }) {
   };
 
   const handleChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      if (name === 'trainees') {
+        setFormData(prev => ({
+          ...prev,
+          trainees: checked
+            ? [...prev.trainees, value]
+            : prev.trainees.filter(id => id !== value)
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [name]: checked
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   return (
@@ -84,20 +102,23 @@ export function CreateSessionModal({ onClose, onSuccess }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Trainee
+              Trainees
             </label>
-            <select
-              name="trainee_id"
-              value={formData.trainee_id}
-              onChange={handleChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-green-500"
-              required
-            >
-              <option value="">Select a trainee</option>
+            <div className="max-h-32 overflow-y-auto bg-gray-700 border border-gray-600 rounded-lg p-3">
               {users.filter(u => u.role === 'trainee').map(trainee => (
-                <option key={trainee.id} value={trainee.id}>{trainee.first_name} {trainee.last_name}</option>
+                <label key={trainee.id} className="flex items-center space-x-2 text-white">
+                  <input
+                    type="checkbox"
+                    name="trainees"
+                    value={trainee.id}
+                    checked={formData.trainees.includes(trainee.id.toString())}
+                    onChange={handleChange}
+                    className="rounded border-gray-600 text-green-600 focus:ring-green-500"
+                  />
+                  <span>{trainee.first_name} {trainee.last_name}</span>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
 
           <div>
@@ -127,6 +148,20 @@ export function CreateSessionModal({ onClose, onSuccess }) {
               max="480"
               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-green-500"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Google Meet Link
+            </label>
+            <input
+              type="url"
+              name="class_link"
+              value={formData.class_link}
+              onChange={handleChange}
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-green-500"
+              placeholder="https://meet.google.com/..."
             />
           </div>
 
