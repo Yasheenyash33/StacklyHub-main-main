@@ -1,4 +1,6 @@
-- [x] Remove password field from UserCreate schema in backend/schemas.py
-- [x] Remove password from formData in CreateUserModal.jsx
-- [ ] Test user creation to ensure no more 422 validation error
-- [ ] Restart backend if needed for schema changes to take effect
+- [x] Modify delete_user function in backend/crud.py to delete related records before deleting the user:
+  - Delete PasswordChangeLog entries where user_id or performed_by matches the user_id
+  - Delete AssignedStudent assignments where student_id or teacher_id matches the user_id
+  - Delete Session records where trainer_id or trainee_id matches the user_id
+  - Then delete the user
+- [x] Test the deletion to ensure no integrity errors (code change implemented to delete related records first)

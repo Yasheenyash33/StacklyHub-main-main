@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 export function TraineeDashboard() {
   const { user, sessions, users } = useAuth();
   
-  const mySessions = sessions.filter(s => s.trainees.includes(user.id));
+  const mySessions = sessions.filter(s => s.trainees && s.trainees.includes(user.id));
   const upcomingSessions = mySessions.filter(s => s.status === 'scheduled');
   const completedSessions = mySessions.filter(s => s.status === 'completed');
   const myTrainer = users.find(u => u.id === user.assignedTrainer);

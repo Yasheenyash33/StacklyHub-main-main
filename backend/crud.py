@@ -70,6 +70,20 @@ def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate):
 def delete_user(db: Session, user_id: int):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if db_user:
+        # Delete related records to avoid foreign key constraint errors
+        # Delete PasswordChangeLog entries
+        db.query(models.PasswordChangeLog).filter(
+            (models.PasswordChangeLog.user_id == user_id) | (models.PasswordChangeLog.performed_by == user_id)
+        ).delete()
+        # Delete AssignedStudent assignments
+        db.query(models.AssignedStudent).filter(
+            (models.AssignedStudent.student_id == user_id) | (models.AssignedStudent.teacher_id == user_id)
+        ).delete()
+        # Delete Session records
+        db.query(models.Session).filter(
+            (models.Session.trainer_id == user_id) | (models.Session.trainee_id == user_id)
+        ).delete()
+        # Now delete the user
         db.delete(db_user)
         db.commit()
         return True

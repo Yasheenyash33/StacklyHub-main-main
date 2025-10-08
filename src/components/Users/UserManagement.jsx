@@ -3,13 +3,17 @@ import { Plus, CreditCard as Edit, Trash2, UserCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { CreateUserModal } from './CreateUserModal';
 import { AssignTrainerModal } from './AssignTrainerModal';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import toast from 'react-hot-toast';
 
 export function UserManagement() {
   const { user, users, deleteUser } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTrainee, setSelectedTrainee] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isAdmin = user.role === 'admin';
   const isTrainer = user.role === 'trainer';
@@ -19,15 +23,28 @@ export function UserManagement() {
     displayUsers = users.filter(u => u.role === 'trainee' && u.assignedTrainer === user.id);
   }
 
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      const success = await deleteUser(userId);
-      if (success) {
-        toast.success('User deleted successfully');
-      } else {
-        toast.error('Failed to delete user');
-      }
+  const handleDeleteUser = (user) => {
+    setUserToDelete(user);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
+    const success = await deleteUser(userToDelete.id);
+    setIsDeleting(false);
+    setShowDeleteModal(false);
+    setUserToDelete(null);
+    if (success) {
+      toast.success('User deleted successfully');
+    } else {
+      toast.error('Failed to delete user');
     }
+  };
+
+  const cancelDeleteUser = () => {
+    setShowDeleteModal(false);
+    setUserToDelete(null);
   };
 
   const handleAssignTrainer = (trainee) => {
@@ -156,7 +173,7 @@ export function UserManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
                           <button
-                            onClick={() => handleDeleteUser(u.id)}
+                            onClick={() => handleDeleteUser(u)}
                             className="text-red-400 hover:text-red-300 transition-colors duration-200"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -202,6 +219,15 @@ export function UserManagement() {
             setSelectedTrainee(null);
             toast.success('Trainer assigned successfully');
           }}
+        />
+      )}
+
+      {showDeleteModal && userToDelete && (
+        <DeleteConfirmationModal
+          user={userToDelete}
+          onConfirm={confirmDeleteUser}
+          onCancel={cancelDeleteUser}
+          isLoading={isDeleting}
         />
       )}
     </div>

@@ -65,12 +65,12 @@ export function AuthProvider({ children }) {
     setIsDataLoading(true);
     try {
       const fetches = [
-      fetch(`${API_BASE_URL}/sessions/`, { headers: authHeaders(), credentials: 'include' }),
-      fetch(`${API_BASE_URL}/assignments/`, { headers: authHeaders(), credentials: 'include' }),
+      fetch(`${API_BASE_URL}/sessions/`, { headers: authHeaders() }),
+      fetch(`${API_BASE_URL}/assignments/`, { headers: authHeaders() }),
       ];
       let usersPromise = null;
       if (user.role === 'admin' || user.role === 'trainer') {
-        usersPromise = fetch(`${API_BASE_URL}/users/`, { headers: authHeaders(), credentials: 'include' });
+        usersPromise = fetch(`${API_BASE_URL}/users/`, { headers: authHeaders() });
         fetches.push(usersPromise);
       }
       const timeoutPromise = new Promise((_, reject) => {
@@ -163,7 +163,7 @@ export function AuthProvider({ children }) {
         case 'student_assigned':
         case 'student_unassigned':
           // Fetch updated assignments
-          fetch(`${API_BASE_URL}/assignments/`, { headers: authHeaders(), credentials: 'include' })
+          fetch(`${API_BASE_URL}/assignments/`, { headers: authHeaders() })
             .then(res => res.json())
             .then(data => setAssignments(data))
             .catch(err => console.error('Error fetching assignments:', err));
@@ -242,7 +242,6 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
@@ -280,7 +279,6 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE_URL}/health`, {
         method: 'GET',
         headers: authHeaders(),
-        credentials: 'include',
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -315,7 +313,6 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE_URL}/users/`, {
         method: 'POST',
         headers: authHeaders(),
-        credentials: 'include',
         body: JSON.stringify(userData),
       });
       if (!res.ok) {
@@ -362,7 +359,6 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'PUT',
         headers: authHeaders(),
-        credentials: 'include',
         body: JSON.stringify(updates),
       });
       if (!res.ok) {
@@ -382,16 +378,17 @@ export function AuthProvider({ children }) {
   const deleteUser = async (id) => {
     if (!token) return false;
     try {
-      const res = await fetch(`${API_BASE_URL}/users/${id}`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-        credentials: 'include',
-      });
+    const res = await fetch(`${API_BASE_URL}/users/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.detail || 'Failed to delete user');
       }
-      // WebSocket will update state
+      // Update state immediately for instant UI feedback
+      setUsers(prev => prev.filter(u => u.id !== id));
+      // WebSocket will also update state if connected
       return true;
     } catch (error) {
       console.error('Delete user error:', error);
@@ -406,7 +403,6 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE_URL}/sessions/`, {
         method: 'POST',
         headers: authHeaders(),
-        credentials: 'include',
         body: JSON.stringify(sessionData),
       });
       if (!res.ok) {
@@ -429,7 +425,6 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE_URL}/sessions/${id}`, {
         method: 'PUT',
         headers: authHeaders(),
-        credentials: 'include',
         body: JSON.stringify(updates),
       });
       if (!res.ok) {
@@ -452,7 +447,6 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE_URL}/sessions/${id}`, {
         method: 'DELETE',
         headers: authHeaders(),
-        credentials: 'include',
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -480,7 +474,6 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${API_BASE_URL}/assignments/`, {
         method: 'POST',
         headers: authHeaders(),
-        credentials: 'include',
         body: JSON.stringify({ student_id: studentId, teacher_id: teacherId }),
       });
       if (!res.ok) {
@@ -500,11 +493,9 @@ export function AuthProvider({ children }) {
   const unassignStudent = async (studentId, teacherId) => {
     if (!token) return false;
     try {
-      const res = await fetch(`${API_BASE_URL}/assignments/`, {
+      const res = await fetch(`${API_BASE_URL}/assignments/${studentId}/${teacherId}`, {
         method: 'DELETE',
         headers: authHeaders(),
-        credentials: 'include',
-        body: JSON.stringify({ student_id: studentId, teacher_id: teacherId }),
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -560,7 +551,6 @@ export const useAuth = () => {
 const fetchData = async (endpoint) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

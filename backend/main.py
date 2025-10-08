@@ -62,21 +62,10 @@ from backend.database import engine, get_db, SessionLocal
 models.Base.metadata.create_all(bind=engine)
 
 # CORS middleware for frontend integration
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "ws://localhost:5173",
-    "ws://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-    "ws://localhost:5174",
-    "ws://127.0.0.1:5174"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
@@ -396,17 +385,7 @@ async def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session
     return updated_user
 
 @app.delete("/users/{user_id}")
-async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-     # Handle CORS preflight
-    if request.method == "OPTIONS":
-        response = JSONResponse(content={})
-        origin = request.headers.get("origin")
-        if origin in origins:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = "DELETE, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-        return response
+async def delete_user(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role.value != "admin":
         raise HTTPException(status_code=403, detail="Only admins can delete users")
 
@@ -423,14 +402,7 @@ async def delete_user(user_id: int, request: Request, db: Session = Depends(get_
         }
     })
 
-# Create response with CORS headers
-    response = JSONResponse(content={"message": "User deleted successfully"})
-    origin = request.headers.get("origin")
-    if origin in origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
-    return {"message": "User deleted successfully"}     
+    return {"message": "User deleted successfully"}
 
 # Session routes
 @app.get("/sessions/", response_model=List[schemas.Session])
@@ -607,15 +579,10 @@ from fastapi.responses import JSONResponse
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    response = JSONResponse(
+    return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail}
     )
-    origin = request.headers.get("origin")
-    if origin in origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
