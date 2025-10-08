@@ -70,6 +70,9 @@ class SessionUpdate(BaseModel):
     status: Optional[SessionStatus] = None
     class_link: Optional[str] = None
 
+    class Config:
+        extra = 'ignore'
+
 class Session(SessionBase):
     id: int
     created_at: datetime

@@ -1,4 +1,4 @@
-from backend.database import engine, text
+from .database import engine, text
 
 # Run the migration to add is_temporary_password column
 migration_sql_is_temp_password = """

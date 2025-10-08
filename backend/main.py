@@ -64,8 +64,8 @@ models.Base.metadata.create_all(bind=engine)
 # CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=False,
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
@@ -696,7 +696,7 @@ if __name__ == "__main__":
     
     config = uvicorn.Config(
         "backend.main:app",
-        host="localhost",
+        host="127.0.0.1",
         port=8002,
         reload=True,
         log_level="info",
