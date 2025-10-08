@@ -90,7 +90,14 @@ export function AuthProvider({ children }) {
         throw new Error('Failed to fetch sessions');
       }
       const sessionsData = await sessionsRes.json();
-      setSessions(sessionsData);
+      // Map session data for frontend consistency
+      const mappedSessions = sessionsData.map(session => ({
+        ...session,
+        trainer: session.trainer_id,
+        trainees: session.trainees.map(t => t.id),
+        startTime: session.scheduled_date
+      }));
+      setSessions(mappedSessions);
 
       if (!assignmentsRes.ok) {
         setAssignments([]);
@@ -155,7 +162,7 @@ export function AuthProvider({ children }) {
           setSessions(prev => [...prev, message.data]);
           break;
         case 'session_updated':
-          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, status: message.data.status, updated_at: message.data.updated_at, trainees: message.data.trainees || s.trainees } : s));
+          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, status: message.data.status, updated_at: message.data.updated_at, trainees: message.data.trainees || s.trainees, trainer: message.data.trainer || s.trainer, startTime: message.data.startTime || s.startTime } : s));
           break;
         case 'session_deleted':
           setSessions(prev => prev.filter(s => s.id !== message.data.session_id));

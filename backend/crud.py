@@ -168,7 +168,7 @@ def get_sessions_by_trainer(db: Session, trainer_id: int):
     return db.query(models.Session).filter(models.Session.trainer_id == trainer_id).all()
 
 def get_sessions_by_trainee(db: Session, trainee_id: int):
-    return db.query(models.Session).filter(models.Session.trainee_id == trainee_id).all()
+    return db.query(models.Session).join(models.SessionTrainee).filter(models.SessionTrainee.trainee_id == trainee_id).all()
 
 def get_sessions_by_status(db: Session, status: models.SessionStatus):
     return db.query(models.Session).filter(models.Session.status == status).all()

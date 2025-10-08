@@ -239,7 +239,7 @@ async def admin_change_password(request: schemas.ChangePasswordRequest, db: Sess
 # AssignedStudent routes
 @app.get("/assignments/", response_model=List[schemas.AssignedStudentWithDetails])
 def read_assignments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if current_user.role.value not in ["admin", "trainer"]:
+    if current_user.role.value not in ["admin", "trainer", "trainee"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     assignments = crud.get_assigned_students(db, skip=skip, limit=limit)
     # Load relationships
@@ -251,6 +251,12 @@ def read_assignments(skip: int = 0, limit: int = 100, db: Session = Depends(get_
             "teacher": assignment.teacher,
             "assigned_date": assignment.assigned_date
         })
+    # Filter based on role
+    if current_user.role.value == "trainee":
+        result = [a for a in result if a["student"]["id"] == current_user.id]
+    elif current_user.role.value == "trainer":
+        result = [a for a in result if a["teacher"]["id"] == current_user.id]
+    # For admin, return all
     return result
 
 @app.post("/assignments/", response_model=schemas.AssignedStudent)
@@ -450,10 +456,17 @@ async def create_session(session: schemas.SessionCreate, db: Session = Depends(g
     await manager.broadcast({
         "type": "session_created",
         "data": {
-            "session_id": created_session.id,
+            "id": created_session.id,
+            "title": created_session.title,
+            "description": created_session.description,
+            "trainer": created_session.trainer_id,
+            "trainees": [t.id for t in trainees],
+            "startTime": created_session.scheduled_date.isoformat(),
+            "duration_minutes": created_session.duration_minutes,
             "status": created_session.status.value,
-            "updated_at": created_session.updated_at.isoformat(),
-            "trainees": [t.id for t in trainees]
+            "class_link": created_session.class_link,
+            "created_at": created_session.created_at.isoformat(),
+            "updated_at": created_session.updated_at.isoformat()
         }
     })
 
@@ -482,7 +495,9 @@ async def update_session(session_id: int, session_update: schemas.SessionUpdate,
             "session_id": session_id,
             "status": updated_session.status.value,
             "updated_at": updated_session.updated_at.isoformat(),
-            "trainees": [t.id for t in trainees]
+            "trainees": [t.id for t in trainees],
+            "trainer": updated_session.trainer_id,
+            "startTime": updated_session.scheduled_date.isoformat()
         }
     })
 
