@@ -294,50 +294,188 @@ Currently, the project does not include automated tests. Manual testing can be p
 
 ### Production Deployment
 
-#### Prerequisites
-- MySQL database server
-- Python 3.8+ with virtual environment
-- Node.js 16+ for building frontend
-- Web server (Nginx recommended)
+Based on the project structure, here's a comprehensive step-by-step guide to deploy each part of the Training Management System. The project consists of three main components: Database (MySQL), Backend (FastAPI), and Frontend (React/Vite). Deployment assumes a production environment like a Linux server (e.g., Ubuntu) with root access. Adjust commands for your specific OS if needed.
 
-#### Backend Deployment
-1. **Set up environment:**
+#### Prerequisites for All Parts
+- A server with SSH access (e.g., AWS EC2, DigitalOcean Droplet, or similar)
+- Domain name (optional but recommended for HTTPS)
+- SSL certificate (for HTTPS; can use Let's Encrypt)
+- Basic knowledge of Linux commands
+- Git installed on the server
+
+#### Part 1: Database Deployment (MySQL)
+
+1. **Install MySQL Server:**
    ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   cp .env.example .env
-   # Edit .env with production values
+   sudo apt update
+   sudo apt install mysql-server
+   sudo systemctl start mysql
+   sudo systemctl enable mysql
    ```
 
-2. **Run database migrations:**
+2. **Secure MySQL Installation:**
+   ```bash
+   sudo mysql_secure_installation
+   ```
+   Follow the prompts to set a root password, remove anonymous users, disallow root login remotely, etc.
+
+3. **Create Database and User:**
+   ```bash
+   sudo mysql -u root -p
+   ```
+   In MySQL shell:
+   ```sql
+   CREATE DATABASE training_app;
+   CREATE USER 'training_user'@'localhost' IDENTIFIED BY 'secure_password_here';
+   GRANT ALL PRIVILEGES ON training_app.* TO 'training_user'@'localhost';
+   FLUSH PRIVILEGES;
+   EXIT;
+   ```
+
+4. **Clone Repository and Run Database Setup:**
+   ```bash
+   git clone <repository-url>
+   cd training-management-system
+   sudo mysql -u training_user -p training_app < database/setup_mysql.sql
+   ```
+
+5. **Run Migrations (if any):**
+   ```bash
+   cd database/migrations
+   # Run each SQL file in order, e.g.:
+   sudo mysql -u training_user -p training_app < 20240601_add_password_change_log_table.sql
+   # Repeat for other migration files as needed
+   ```
+
+6. **Optional: Load Sample Data:**
+   ```bash
+   cd ../..
+   python3 -m backend.sample_data  # Ensure Python and dependencies are installed first
+   ```
+
+#### Part 2: Backend Deployment (FastAPI)
+
+1. **Install Python and Virtual Environment:**
+   ```bash
+   sudo apt install python3 python3-pip python3-venv
+   ```
+
+2. **Clone Repository (if not already done):**
+   ```bash
+   git clone <repository-url>
+   cd training-management-system/backend
+   ```
+
+3. **Create Virtual Environment:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+4. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+5. **Set Up Environment Variables:**
+   Create `.env` file in `backend/` directory:
+   ```bash
+   nano .env
+   ```
+   Add:
+   ```
+   DB_USER=training_user
+   DB_PASSWORD=secure_password_here
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_NAME=training_app
+   SECRET_KEY=very-secure-random-key-change-this
+   CORS_ORIGINS=https://your-domain.com
+   ```
+
+6. **Run Database Migrations:**
    ```bash
    python run_migration.py
    ```
 
-3. **Load sample data (optional):**
+7. **Install Gunicorn:**
    ```bash
-   python -m backend.sample_data
+   pip install gunicorn
    ```
 
-4. **Run with Gunicorn:**
+8. **Create Systemd Service for Backend:**
    ```bash
-   gunicorn backend.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8002
+   sudo nano /etc/systemd/system/training-backend.service
+   ```
+   Add:
+   ```
+   [Unit]
+   Description=Training Management Backend
+   After=network.target
+
+   [Service]
+   User=ubuntu  # Change to your user
+   WorkingDirectory=/path/to/training-management-system/backend
+   Environment=PATH=/path/to/training-management-system/backend/venv/bin
+   ExecStart=/path/to/training-management-system/backend/venv/bin/gunicorn backend.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8002
+   Restart=always
+
+   [Install]
+   WantedBy=multi-user.target
    ```
 
-#### Frontend Deployment
-1. **Build for production:**
+9. **Start and Enable Service:**
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl start training-backend
+   sudo systemctl enable training-backend
+   ```
+
+10. **Configure Firewall:**
+    ```bash
+    sudo ufw allow 8002
+    ```
+
+#### Part 3: Frontend Deployment (React/Vite)
+
+1. **Install Node.js:**
+   ```bash
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+   ```
+
+2. **Clone Repository (if not already done):**
+   ```bash
+   git clone <repository-url>
+   cd training-management-system
+   ```
+
+3. **Install Dependencies:**
+   ```bash
+   npm install
+   ```
+
+4. **Build for Production:**
    ```bash
    npm run build
    ```
 
-2. **Serve static files** with Nginx:
-   ```nginx
+5. **Install Nginx:**
+   ```bash
+   sudo apt install nginx
+   ```
+
+6. **Configure Nginx:**
+   ```bash
+   sudo nano /etc/nginx/sites-available/training-app
+   ```
+   Add:
+   ```
    server {
        listen 80;
-       server_name your-domain.com;
-       root /path/to/dist;
+       server_name your-domain.com www.your-domain.com;
+
+       root /path/to/training-management-system/dist;
        index index.html;
 
        location / {
@@ -348,29 +486,58 @@ Currently, the project does not include automated tests. Manual testing can be p
            proxy_pass http://localhost:8002/;
            proxy_set_header Host $host;
            proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
        }
+
+       # Security headers
+       add_header X-Frame-Options "SAMEORIGIN" always;
+       add_header X-XSS-Protection "1; mode=block" always;
+       add_header X-Content-Type-Options "nosniff" always;
+       add_header Referrer-Policy "no-referrer-when-downgrade" always;
+       add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
    }
    ```
 
-#### Environment Variables
-Create `.env` in backend directory:
-```env
-DB_USER=prod_db_user
-DB_PASSWORD=secure_password
-DB_HOST=prod_db_host
-DB_PORT=3306
-DB_NAME=training_app
-SECRET_KEY=very-secure-random-key
-CORS_ORIGINS=https://your-domain.com
-```
+7. **Enable Site and Restart Nginx:**
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/training-app /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
 
-#### Security Considerations
-- Use HTTPS in production
-- Change default SECRET_KEY
-- Restrict CORS origins
-- Use strong database passwords
-- Enable MySQL SSL if possible
-- Regularly update dependencies
+8. **Configure Firewall:**
+   ```bash
+   sudo ufw allow 'Nginx Full'
+   ```
+
+#### Additional Production Considerations
+
+1. **SSL/HTTPS Setup (using Certbot):**
+   ```bash
+   sudo apt install certbot python3-certbot-nginx
+   sudo certbot --nginx -d your-domain.com
+   ```
+
+2. **Monitoring and Logging:**
+   - Check backend logs: `sudo journalctl -u training-backend -f`
+   - Check Nginx logs: `sudo tail -f /var/log/nginx/error.log`
+
+3. **Backup Strategy:**
+   - Set up automated MySQL backups
+   - Backup application code and configs
+
+4. **Security Hardening:**
+   - Use strong passwords
+   - Disable root SSH login
+   - Keep software updated
+   - Consider using a WAF (Web Application Firewall)
+
+5. **Scaling (if needed):**
+   - Use a load balancer for multiple backend instances
+   - Consider containerization with Docker for easier deployment
+
+After deployment, access the application at `https://your-domain.com`. The backend API will be available at `https://your-domain.com/api/`.
 
 ## 📎 Additional Notes
 

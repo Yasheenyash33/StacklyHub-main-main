@@ -55,8 +55,9 @@ from backend.config import get_settings
 from sqlalchemy.orm import Session
 from typing import List
 
-from backend import models, schemas, crud, reporting
-from backend.database import engine, get_db, SessionLocal
+from database import models
+from backend import schemas, crud, reporting
+from database.database import engine, get_db, SessionLocal
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)

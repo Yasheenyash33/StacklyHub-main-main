@@ -6,7 +6,8 @@ from datetime import datetime
 import secrets
 import string
 
-from . import models, schemas
+from database import models
+from backend import schemas
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
