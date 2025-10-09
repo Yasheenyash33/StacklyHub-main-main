@@ -3,19 +3,33 @@ import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function AssignTrainerModal({ trainee, onClose, onSuccess }) {
-  const { users, updateUserById } = useAuth();
-  const [selectedTrainer, setSelectedTrainer] = useState(trainee.assignedTrainer || '');
+  const { users, assignments, assignStudent, unassignStudent } = useAuth();
+  const currentAssignment = assignments.find(a => a.student.id === trainee.id);
+  const [selectedTrainer, setSelectedTrainer] = useState(currentAssignment ? currentAssignment.teacher.id.toString() : '');
 
   const trainers = users.filter(u => u.role === 'trainer');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    updateUserById(trainee.id, {
-      assignedTrainer: selectedTrainer ? parseInt(selectedTrainer) : null
-    });
-    
-    onSuccess();
+
+    const trainerId = selectedTrainer ? parseInt(selectedTrainer) : null;
+
+    if (trainerId) {
+      // Assign
+      const success = await assignStudent(trainee.id, trainerId);
+      if (success) {
+        onSuccess();
+      }
+    } else if (currentAssignment) {
+      // Unassign
+      const success = await unassignStudent(trainee.id, currentAssignment.teacher.id);
+      if (success) {
+        onSuccess();
+      }
+    } else {
+      // No change
+      onClose();
+    }
   };
 
   return (

@@ -71,7 +71,7 @@ export function AuthProvider({ children }) {
       fetch(`${API_BASE_URL}/assignments/`, { headers: authHeaders() }),
       ];
       let usersPromise = null;
-      if (user.role === 'admin' || user.role === 'trainer') {
+      if (user.role === 'admin' || user.role === 'trainer' || user.role === 'trainee') {
         usersPromise = fetch(`${API_BASE_URL}/users/`, { headers: authHeaders() });
         fetches.push(usersPromise);
       }

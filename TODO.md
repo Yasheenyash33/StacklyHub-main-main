@@ -1,18 +1,14 @@
-# Attendance Tracking and Progress Implementation
+- [x] Debug why assigned trainees are not appearing in the trainer's dashboard.
+- [x] Check if the backend is correctly linking trainees to trainers in the database.
+- [x] Verify that the API endpoint fetching trainees is filtering by the logged-in trainer's ID.
+- [x] Ensure the frontend is correctly calling the API and rendering the trainee list.
+- [x] Suggest any fixes to make sure trainee assignments reflect properly in the UI.
 
-## Backend Changes
-- [ ] Add Attendance model to database/models.py
-- [ ] Add Attendance schemas to backend/schemas.py
-- [ ] Add attendance CRUD functions to backend/crud.py
-- [ ] Add FastAPI endpoints for attendance and progress in backend/main.py
-- [ ] Create migration for Attendance table in database/migrations/
+Fixes implemented:
+- Updated AssignTrainerModal to use assignStudent and unassignStudent from AuthContext instead of incorrectly setting assignedTrainer on user.
+- Updated UserManagement to use assignments data for filtering and displaying trainer assignments.
 
-## Frontend Changes
-- [ ] Update AuthContext.jsx to fetch attendance data
-- [ ] Update TrainerDashboard.jsx to show trainee progress and attendance records
-- [ ] Update TraineeDashboard.jsx for attendance display if needed
-
-## Testing
-- [ ] Test attendance marking
-- [ ] Test progress calculation
-- [ ] Test dashboard updates
+Testing:
+- Test assigning a trainer to a trainee via UserManagement.
+- Verify that the assignment appears in TrainerDashboard "My Trainees" section.
+- Check that unassigning removes the trainee from the dashboard.

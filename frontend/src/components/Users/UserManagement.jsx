@@ -9,7 +9,7 @@ import { ResetPasswordModal } from './ResetPasswordModal';
 import toast from 'react-hot-toast';
 
 export function UserManagement() {
-  const { user, users, deleteUser } = useAuth();
+  const { user, users, assignments, deleteUser } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -26,7 +26,8 @@ export function UserManagement() {
 
   let displayUsers = users;
   if (isTrainer) {
-    displayUsers = users.filter(u => u.role === 'trainee' && u.assignedTrainer === user.id);
+    const myTraineeIds = assignments.filter(a => a.teacher.id === user.id).map(a => a.student.id);
+    displayUsers = users.filter(u => myTraineeIds.includes(u.id));
   }
 
   const handleDeleteUser = (user) => {
@@ -135,8 +136,9 @@ export function UserManagement() {
             </thead>
             <tbody className="bg-gray-800 divide-y divide-gray-700">
               {displayUsers.map((u) => {
-                const trainer = users.find(t => t.id === u.assignedTrainer);
-                
+                const assignment = assignments.find(a => a.student.id === u.id);
+                const trainer = assignment ? assignment.teacher : null;
+
                 return (
                   <tr key={u.id} className="hover:bg-gray-700 transition-colors duration-200">
                     <td className="px-6 py-4 whitespace-nowrap">
