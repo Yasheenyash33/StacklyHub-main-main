@@ -276,6 +276,60 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Change password function
+  const changePassword = async (newPassword, currentPassword = null) => {
+    if (!token) return { success: false, error: 'No token' };
+    try {
+      const body = { new_password: newPassword };
+      if (currentPassword) {
+        body.current_password = currentPassword;
+      }
+      const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        return { success: false, error: errorData.detail || 'Failed to change password' };
+      }
+      const data = await res.json();
+      // Update user state to reflect password changed
+      setUser(prev => prev ? { ...prev, is_temporary_password: false } : null);
+      localStorage.setItem('user', JSON.stringify({ ...user, is_temporary_password: false }));
+      return { success: true };
+    } catch (error) {
+      console.error('Change password error:', error);
+      return { success: false, error: 'Change password error' };
+    }
+  };
+
+  // Reset password function (admin only)
+  const resetPassword = async (userId, newPassword) => {
+    if (!token) return { success: false, error: 'No token' };
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/reset-password/${userId}`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ new_password: newPassword }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        return { success: false, error: errorData.detail || 'Failed to reset password' };
+      }
+      const data = await res.json();
+      // Update user state if resetting current user
+      if (user && user.id === userId) {
+        setUser(prev => prev ? { ...prev, is_temporary_password: true } : null);
+        localStorage.setItem('user', JSON.stringify({ ...user, is_temporary_password: true }));
+      }
+      return { success: true, message: data.message };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { success: false, error: 'Reset password error' };
+    }
+  };
+
 
 
   // Helper to check backend connectivity and token presence
@@ -536,6 +590,8 @@ export function AuthProvider({ children }) {
     token,
     login,
     logout,
+    changePassword,
+    resetPassword,
     createUser,
     updateUserById,
     deleteUser,

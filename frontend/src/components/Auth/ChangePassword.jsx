@@ -5,17 +5,21 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 export function ChangePassword() {
-  const { user, updateUserById } = useAuth();
+  const { user, changePassword } = useAuth();
   const navigate = useNavigate();
   const [passwords, setPasswords] = useState({
+    currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   const [showPasswords, setShowPasswords] = useState({
+    current: false,
     new: false,
     confirm: false
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  const isTemporary = user?.is_temporary_password;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,15 +38,12 @@ export function ChangePassword() {
     }
 
     try {
-      const result = await updateUserById(user.id, {
-        password: passwords.newPassword,
-        is_temporary_password: false
-      });
-      if (result) {
+      const result = await changePassword(passwords.newPassword, isTemporary ? null : passwords.currentPassword);
+      if (result.success) {
         toast.success('Password updated successfully');
         navigate('/dashboard');
       } else {
-        toast.error('Failed to update password');
+        toast.error(result.error || 'Failed to update password');
       }
     } catch (error) {
       toast.error('Failed to update password');
@@ -74,14 +75,45 @@ export function ChangePassword() {
             <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Lock className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Change Password Required</h1>
+            <h1 className="text-2xl font-bold text-white">
+              {isTemporary ? 'Change Password Required' : 'Change Password'}
+            </h1>
             <p className="text-gray-400 mt-2">
-              You must change your temporary password to continue
+              {isTemporary
+                ? 'You must change your temporary password to continue'
+                : 'Update your password to keep your account secure'
+              }
             </p>
           </div>
 
           {/* Change Password Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {!isTemporary && (
+              <div>
+                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="currentPassword"
+                    type={showPasswords.current ? 'text' : 'password'}
+                    required
+                    value={passwords.currentPassword}
+                    onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 pr-10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200"
+                    placeholder="Enter current password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility('current')}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300 transition-colors duration-200 z-10"
+                  >
+                    {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300 mb-2">
                 New Password

@@ -174,8 +174,8 @@ def login(login_data: schemas.LoginRequest, db: Session = Depends(get_db)):
 
 @app.post("/auth/change-password")
 async def change_password(request: schemas.ChangePasswordRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    # For non-admin users, verify current password
-    if current_user.role.value != "admin":
+    # For non-admin users, verify current password unless it's a temporary password change
+    if current_user.role.value != "admin" and not current_user.is_temporary_password:
         if not request.current_password:
             raise HTTPException(status_code=400, detail="Current password required")
         if not crud.authenticate_user(db, current_user.username, request.current_password):

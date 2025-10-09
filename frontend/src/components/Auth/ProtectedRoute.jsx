@@ -21,7 +21,7 @@ export function ProtectedRoute({ children, roles }) {
   }
 
   // Check if user has temporary password and needs to change it
-  if (user.isTemporary) {
+  if (user.is_temporary_password) {
     return <ChangePassword />;
   }
 

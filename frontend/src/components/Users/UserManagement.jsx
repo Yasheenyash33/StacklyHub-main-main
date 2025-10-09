@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, UserCheck } from 'lucide-react';
+import { Plus, Edit, Trash2, UserCheck, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { CreateUserModal } from './CreateUserModal';
 import { EditUserModal } from './EditUserModal';
 import { AssignTrainerModal } from './AssignTrainerModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { ResetPasswordModal } from './ResetPasswordModal';
 import toast from 'react-hot-toast';
 
 export function UserManagement() {
@@ -13,9 +14,11 @@ export function UserManagement() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
   const [selectedTrainee, setSelectedTrainee] = useState(null);
   const [userToEdit, setUserToEdit] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [userToReset, setUserToReset] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const isAdmin = user.role === 'admin';
@@ -58,6 +61,11 @@ export function UserManagement() {
   const handleAssignTrainer = (trainee) => {
     setSelectedTrainee(trainee);
     setShowAssignModal(true);
+  };
+
+  const handleResetPassword = (user) => {
+    setUserToReset(user);
+    setShowResetModal(true);
   };
 
   const getRoleBadgeColor = (role) => {
@@ -183,12 +191,21 @@ export function UserManagement() {
                           <button
                             onClick={() => handleEditUser(u)}
                             className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                            title="Edit User"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
+                            onClick={() => handleResetPassword(u)}
+                            className="text-yellow-400 hover:text-yellow-300 transition-colors duration-200"
+                            title="Reset Password"
+                          >
+                            <Lock className="h-4 w-4" />
+                          </button>
+                          <button
                             onClick={() => handleDeleteUser(u)}
                             className="text-red-400 hover:text-red-300 transition-colors duration-200"
+                            title="Delete User"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -257,6 +274,20 @@ export function UserManagement() {
           onConfirm={confirmDeleteUser}
           onCancel={cancelDeleteUser}
           isLoading={isDeleting}
+        />
+      )}
+
+      {showResetModal && userToReset && (
+        <ResetPasswordModal
+          user={userToReset}
+          onClose={() => {
+            setShowResetModal(false);
+            setUserToReset(null);
+          }}
+          onSuccess={() => {
+            setShowResetModal(false);
+            setUserToReset(null);
+          }}
         />
       )}
     </div>
