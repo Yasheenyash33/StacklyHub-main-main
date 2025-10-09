@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
 from .database import Base
@@ -27,8 +27,8 @@ class User(Base):
     first_name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
     is_temporary_password = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     sessions_as_trainer = relationship("Session", back_populates="trainer", foreign_keys="Session.trainer_id")
@@ -44,16 +44,17 @@ class Session(Base):
     title = Column(String(100), nullable=False)
     description = Column(String(500))
     trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    scheduled_date = Column(DateTime, nullable=False, index=True)
+    scheduled_date = Column(DateTime(timezone=True), nullable=False, index=True)
     duration_minutes = Column(Integer, nullable=False)
     status = Column(Enum(SessionStatus), default=SessionStatus.scheduled, index=True)
     class_link = Column(String(500))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     trainer = relationship("User", back_populates="sessions_as_trainer", foreign_keys=[trainer_id])
     trainees = relationship("SessionTrainee", back_populates="session")
+    attendance_records = relationship("Attendance", back_populates="session")
 
 class SessionTrainee(Base):
     __tablename__ = "session_trainees"
@@ -61,7 +62,7 @@ class SessionTrainee(Base):
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False, index=True)
     trainee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    added_at = Column(DateTime, default=datetime.utcnow)
+    added_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     session = relationship("Session", back_populates="trainees")
@@ -74,7 +75,7 @@ class PasswordChangeLog(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     action = Column(String(50), nullable=False)  # 'created', 'changed', 'reset'
     performed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # None for self-change
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     details = Column(String(500))  # Optional details like IP, etc.
 
     # Relationships
@@ -87,8 +88,25 @@ class AssignedStudent(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    assigned_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    assigned_date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     student = relationship("User", foreign_keys=[student_id])
     teacher = relationship("User", foreign_keys=[teacher_id])
+
+class Attendance(Base):
+    __tablename__ = "attendance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False, index=True)
+    trainee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    present = Column(Boolean, nullable=False, default=False)
+    marked_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    session = relationship("Session", back_populates="attendance_records")
+    trainee = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint('session_id', 'trainee_id', name='unique_session_trainee_attendance'),
+    )

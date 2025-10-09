@@ -37,6 +37,8 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [ws, setWs] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [progress, setProgress] = useState([]);
   const [isDataLoading, setIsDataLoading] = useState(false);
 
   // Helper to attach auth header

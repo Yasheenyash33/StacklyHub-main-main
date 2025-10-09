@@ -31,13 +31,14 @@ def generate_csv_report(users, sessions):
 
     # Sessions section
     writer.writerow(['Sessions Report'])
-    writer.writerow(['Session ID', 'Title', 'Trainer ID', 'Trainee ID', 'Scheduled Date', 'Duration (min)', 'Status'])
+    writer.writerow(['Session ID', 'Title', 'Trainer', 'Trainees', 'Scheduled Date', 'Duration (min)', 'Status'])
     for session in sessions:
+        trainee_names = ", ".join([st.trainee.name for st in session.trainees])
         writer.writerow([
             session.id,
             session.title,
-            session.trainer_id,
-            session.trainee_id,
+            session.trainer.name if session.trainer else "N/A",
+            trainee_names,
             session.scheduled_date.strftime('%Y-%m-%d %H:%M:%S'),
             session.duration_minutes,
             session.status.value
@@ -66,13 +67,14 @@ def generate_excel_report(users, sessions):
 
     # Sessions sheet
     ws_sessions = wb.create_sheet("Sessions")
-    ws_sessions.append(['Session ID', 'Title', 'Trainer ID', 'Trainee ID', 'Scheduled Date', 'Duration (min)', 'Status'])
+    ws_sessions.append(['Session ID', 'Title', 'Trainer', 'Trainees', 'Scheduled Date', 'Duration (min)', 'Status'])
     for session in sessions:
+        trainee_names = ", ".join([st.trainee.name for st in session.trainees])
         ws_sessions.append([
             session.id,
             session.title,
-            session.trainer_id,
-            session.trainee_id,
+            session.trainer.name if session.trainer else "N/A",
+            trainee_names,
             session.scheduled_date.strftime('%Y-%m-%d %H:%M:%S'),
             session.duration_minutes,
             session.status.value
@@ -125,13 +127,14 @@ def generate_pdf_report(users, sessions):
 
     # Sessions section
     elements.append(Paragraph("Sessions", styles['Heading2']))
-    session_data = [['ID', 'Title', 'Trainer ID', 'Trainee ID', 'Scheduled Date', 'Duration', 'Status']]
+    session_data = [['ID', 'Title', 'Trainer', 'Trainees', 'Scheduled Date', 'Duration', 'Status']]
     for session in sessions:
+        trainee_names = ", ".join([st.trainee.name for st in session.trainees])
         session_data.append([
             str(session.id),
             session.title,
-            str(session.trainer_id),
-            str(session.trainee_id),
+            session.trainer.name if session.trainer else "N/A",
+            trainee_names,
             session.scheduled_date.strftime('%Y-%m-%d'),
             f"{session.duration_minutes} min",
             session.status.value

@@ -58,6 +58,7 @@ from typing import List
 from database import models
 from backend import schemas, crud, reporting
 from database.database import engine, get_db, SessionLocal
+from sqlalchemy.orm import joinedload
 
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
@@ -65,7 +66,7 @@ models.Base.metadata.create_all(bind=engine)
 # CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
@@ -307,6 +308,148 @@ async def unassign_student(student_id: int, teacher_id: int, db: Session = Depen
     })
 
     return {"message": "Student unassigned successfully"}
+
+# Attendance routes
+@app.get("/attendance/session/{session_id}", response_model=List[schemas.AttendanceWithDetails])
+def read_attendance_for_session(session_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.value not in ["admin", "trainer"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Check if session exists and user has access
+    session = crud.get_session(db, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if current_user.role.value == "trainer" and session.trainer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized for this session")
+
+    attendance_records = crud.get_attendance_for_session(db, session_id)
+    # Populate relationships
+    result = []
+    for record in attendance_records:
+        result.append({
+            "id": record.id,
+            "session": record.session,
+            "trainee": record.trainee,
+            "present": record.present,
+            "marked_at": record.marked_at
+        })
+    return result
+
+@app.post("/attendance/", response_model=schemas.Attendance)
+async def mark_attendance(attendance: schemas.AttendanceCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.value not in ["admin", "trainer"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Check if session exists and user has access
+    session = crud.get_session(db, attendance.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if current_user.role.value == "trainer" and session.trainer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized for this session")
+
+    # Check if trainee is enrolled in the session
+    trainee_in_session = db.query(models.SessionTrainee).filter(
+        models.SessionTrainee.session_id == attendance.session_id,
+        models.SessionTrainee.trainee_id == attendance.trainee_id
+    ).first()
+    if not trainee_in_session:
+        raise HTTPException(status_code=400, detail="Trainee not enrolled in this session")
+
+    marked_attendance = crud.mark_attendance(db, attendance.session_id, attendance.trainee_id, attendance.present)
+
+    # Broadcast attendance update
+    await manager.broadcast({
+        "type": "attendance_marked",
+        "data": {
+            "session_id": attendance.session_id,
+            "trainee_id": attendance.trainee_id,
+            "present": attendance.present,
+            "marked_at": marked_attendance.marked_at.isoformat()
+        }
+    })
+
+    return marked_attendance
+
+@app.put("/attendance/{attendance_id}", response_model=schemas.Attendance)
+async def update_attendance(attendance_id: int, present: bool, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.value not in ["admin", "trainer"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    updated_attendance = crud.update_attendance(db, attendance_id, present)
+    if not updated_attendance:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+
+    # Check if user has access to the session
+    session = crud.get_session(db, updated_attendance.session_id)
+    if current_user.role.value == "trainer" and session.trainer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized for this session")
+
+    # Broadcast attendance update
+    await manager.broadcast({
+        "type": "attendance_updated",
+        "data": {
+            "attendance_id": attendance_id,
+            "present": present,
+            "marked_at": updated_attendance.marked_at.isoformat()
+        }
+    })
+
+    return updated_attendance
+
+@app.delete("/attendance/{attendance_id}")
+async def delete_attendance(attendance_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.value != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can delete attendance records")
+
+    success = crud.delete_attendance(db, attendance_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+
+    # Broadcast attendance deletion
+    await manager.broadcast({
+        "type": "attendance_deleted",
+        "data": {
+            "attendance_id": attendance_id
+        }
+    })
+
+    return {"message": "Attendance record deleted"}
+
+# Progress routes
+@app.get("/progress/trainee/{trainee_id}", response_model=schemas.TraineeProgress)
+def get_trainee_progress(trainee_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # Allow admin, trainer (if assigned), or the trainee themselves
+    if current_user.role.value not in ["admin", "trainer", "trainee"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if current_user.role.value == "trainee" and current_user.id != trainee_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if current_user.role.value == "trainer":
+        # Check if trainer is assigned to this trainee
+        assignment = db.query(models.AssignedStudent).filter(
+            models.AssignedStudent.student_id == trainee_id,
+            models.AssignedStudent.teacher_id == current_user.id
+        ).first()
+        if not assignment:
+            raise HTTPException(status_code=403, detail="Not authorized for this trainee")
+
+    progress = crud.get_trainee_progress(db, trainee_id)
+    trainee = crud.get_user(db, trainee_id)
+    progress["trainee"] = trainee
+    return progress
+
+@app.get("/progress/trainer/{trainer_id}", response_model=List[schemas.TraineeProgress])
+def get_trainees_progress_for_trainer(trainer_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.value not in ["admin", "trainer"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if current_user.role.value == "trainer" and current_user.id != trainer_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    return crud.get_trainees_progress_for_trainer(db, trainer_id)
 
 # User routes
 @app.get("/users/", response_model=List[schemas.User])
@@ -603,7 +746,10 @@ def generate_report(format: str = "pdf", db: Session = Depends(get_db), current_
         raise HTTPException(status_code=403, detail="Not authorized")
 
     users = crud.get_users(db)
-    sessions = crud.get_sessions(db)
+    sessions = db.query(models.Session).options(
+        joinedload(models.Session.trainer),
+        joinedload(models.Session.trainees).joinedload(models.SessionTrainee.trainee)
+    ).all()
 
     if format == "csv":
         report_data = reporting.generate_csv_report(users, sessions)

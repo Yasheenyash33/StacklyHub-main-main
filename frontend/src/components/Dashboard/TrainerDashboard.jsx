@@ -4,10 +4,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 
 export function TrainerDashboard() {
-  const { user, users, sessions } = useAuth();
-  
+  const { user, users, sessions, assignments, progress } = useAuth();
+
   const mySessions = sessions.filter(s => s.trainer === user.id);
-  const myTrainees = users.filter(u => u.assignedTrainer === user.id);
+  const myTraineeIds = assignments.filter(a => a.teacher.id === user.id).map(a => a.student.id);
+  const myTrainees = users.filter(u => myTraineeIds.includes(u.id));
   const upcomingSessions = mySessions.filter(s => s.status === 'scheduled');
   const completedSessions = mySessions.filter(s => s.status === 'completed');
 

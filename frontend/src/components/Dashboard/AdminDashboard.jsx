@@ -8,11 +8,23 @@ import { CreateSessionModal } from '../Sessions/CreateSessionModal';
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444'];
 
 export function AdminDashboard() {
-  const { users, sessions } = useAuth();
+  const { users, sessions, assignments } = useAuth();
 
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
   const [reportFormat, setReportFormat] = useState('pdf');
+
+  // Map user assignments for quick lookup
+  const studentToTrainerMap = {};
+  assignments.forEach(a => {
+    studentToTrainerMap[a.student.id] = a.teacher.id;
+  });
+
+  // Add assignedTrainer field to users for easier filtering
+  const usersWithAssignedTrainer = users.map(u => ({
+    ...u,
+    assignedTrainer: studentToTrainerMap[u.id] || null
+  }));
 
   const stats = [
     {

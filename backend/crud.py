@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from passlib.context import CryptContext
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import secrets
 import string
 
@@ -300,3 +300,92 @@ def unassign_student_from_teacher(db: Session, student_id: int, teacher_id: int)
         db.commit()
         return True
     return False
+
+# Attendance CRUD operations
+def get_attendance(db: Session, attendance_id: int):
+    return db.query(models.Attendance).filter(models.Attendance.id == attendance_id).first()
+
+def get_attendance_for_session(db: Session, session_id: int):
+    return db.query(models.Attendance).filter(models.Attendance.session_id == session_id).all()
+
+def get_attendance_for_trainee(db: Session, trainee_id: int):
+    return db.query(models.Attendance).filter(models.Attendance.trainee_id == trainee_id).all()
+
+def mark_attendance(db: Session, session_id: int, trainee_id: int, present: bool):
+    # Check if already marked
+    existing = db.query(models.Attendance).filter(
+        models.Attendance.session_id == session_id,
+        models.Attendance.trainee_id == trainee_id
+    ).first()
+    if existing:
+        existing.present = present
+        existing.marked_at = datetime.utcnow()
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    attendance = models.Attendance(session_id=session_id, trainee_id=trainee_id, present=present)
+    db.add(attendance)
+    db.commit()
+    db.refresh(attendance)
+    return attendance
+
+def update_attendance(db: Session, attendance_id: int, present: bool):
+    attendance = db.query(models.Attendance).filter(models.Attendance.id == attendance_id).first()
+    if attendance:
+        attendance.present = present
+        attendance.marked_at = datetime.utcnow()
+        db.commit()
+        db.refresh(attendance)
+        return attendance
+    return None
+
+def delete_attendance(db: Session, attendance_id: int):
+    attendance = db.query(models.Attendance).filter(models.Attendance.id == attendance_id).first()
+    if attendance:
+        db.delete(attendance)
+        db.commit()
+        return True
+    return False
+
+def get_trainee_progress(db: Session, trainee_id: int):
+    # Get all sessions the trainee is enrolled in
+    enrolled_sessions = db.query(models.SessionTrainee).filter(models.SessionTrainee.trainee_id == trainee_id).all()
+    total_sessions = len(enrolled_sessions)
+
+    if total_sessions == 0:
+        return {
+            "trainee_id": trainee_id,
+            "total_sessions": 0,
+            "attended_sessions": 0,
+            "progress_percentage": 0.0
+        }
+
+    # Get attended sessions (present=True)
+    attended_count = db.query(models.Attendance).filter(
+        models.Attendance.trainee_id == trainee_id,
+        models.Attendance.present == True
+    ).count()
+
+    progress_percentage = (attended_count / total_sessions) * 100
+
+    return {
+        "trainee_id": trainee_id,
+        "total_sessions": total_sessions,
+        "attended_sessions": attended_count,
+        "progress_percentage": round(progress_percentage, 2)
+    }
+
+def get_trainees_progress_for_trainer(db: Session, trainer_id: int):
+    # Get trainees assigned to this trainer
+    assignments = db.query(models.AssignedStudent).filter(models.AssignedStudent.teacher_id == trainer_id).all()
+    trainee_ids = [a.student_id for a in assignments]
+
+    progress_list = []
+    for trainee_id in trainee_ids:
+        progress = get_trainee_progress(db, trainee_id)
+        trainee = get_user(db, trainee_id)
+        progress["trainee"] = trainee
+        progress_list.append(progress)
+
+    return progress_list

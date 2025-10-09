@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, CreditCard as Edit, Trash2, UserCheck } from 'lucide-react';
+import { Plus, Edit, Trash2, UserCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { CreateUserModal } from './CreateUserModal';
+import { EditUserModal } from './EditUserModal';
 import { AssignTrainerModal } from './AssignTrainerModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import toast from 'react-hot-toast';
@@ -9,9 +10,11 @@ import toast from 'react-hot-toast';
 export function UserManagement() {
   const { user, users, deleteUser } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedTrainee, setSelectedTrainee] = useState(null);
+  const [userToEdit, setUserToEdit] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -45,6 +48,11 @@ export function UserManagement() {
   const cancelDeleteUser = () => {
     setShowDeleteModal(false);
     setUserToDelete(null);
+  };
+
+  const handleEditUser = (user) => {
+    setUserToEdit(user);
+    setShowEditModal(true);
   };
 
   const handleAssignTrainer = (trainee) => {
@@ -173,6 +181,12 @@ export function UserManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
                           <button
+                            onClick={() => handleEditUser(u)}
+                            className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
                             onClick={() => handleDeleteUser(u)}
                             className="text-red-400 hover:text-red-300 transition-colors duration-200"
                           >
@@ -203,6 +217,21 @@ export function UserManagement() {
           onSuccess={() => {
             setShowCreateModal(false);
             toast.success('User created successfully');
+          }}
+        />
+      )}
+
+      {showEditModal && userToEdit && (
+        <EditUserModal
+          user={userToEdit}
+          onClose={() => {
+            setShowEditModal(false);
+            setUserToEdit(null);
+          }}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setUserToEdit(null);
+            toast.success('User updated successfully');
           }}
         />
       )}

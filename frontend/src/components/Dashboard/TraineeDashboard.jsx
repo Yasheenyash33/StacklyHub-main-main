@@ -5,12 +5,14 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 export function TraineeDashboard() {
-  const { user, sessions, users } = useAuth();
-  
+  const { user, sessions, users, assignments, progress } = useAuth();
+
   const mySessions = sessions.filter(s => s.trainees && s.trainees.includes(user.id));
   const upcomingSessions = mySessions.filter(s => s.status === 'scheduled');
   const completedSessions = mySessions.filter(s => s.status === 'completed');
-  const myTrainer = users.find(u => u.id === user.assignedTrainer);
+
+  const myAssignment = assignments.find(a => a.student.id === user.id);
+  const myTrainer = myAssignment ? users.find(u => u.id === myAssignment.teacher.id) : null;
 
   const stats = [
     {

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, computed_field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from enum import Enum
 
@@ -36,8 +36,8 @@ class UserUpdate(BaseModel):
 class User(UserBase):
     id: int
     is_temporary_password: bool
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @computed_field
     def name(self) -> str:
@@ -52,7 +52,7 @@ class SessionBase(BaseModel):
     description: Optional[str] = None
     trainer_id: int
     trainees: List[int] = []
-    scheduled_date: datetime
+    scheduled_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     duration_minutes: int
     status: SessionStatus = SessionStatus.scheduled
     class_link: Optional[str] = None
@@ -75,8 +75,8 @@ class SessionUpdate(BaseModel):
 
 class Session(SessionBase):
     id: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         from_attributes = True
@@ -87,12 +87,12 @@ class SessionWithTrainees(BaseModel):
     description: Optional[str] = None
     trainer_id: int
     trainees: List[User] = []
-    scheduled_date: datetime
+    scheduled_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     duration_minutes: int
     status: SessionStatus
     class_link: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         from_attributes = True
@@ -160,3 +160,39 @@ class AssignedStudentWithDetails(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Attendance schemas
+class AttendanceBase(BaseModel):
+    session_id: int
+    trainee_id: int
+    present: bool
+    marked_at: datetime
+
+class AttendanceCreate(AttendanceBase):
+    pass
+
+class AttendanceUpdate(BaseModel):
+    present: Optional[bool] = None
+
+class Attendance(AttendanceBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+class AttendanceWithDetails(BaseModel):
+    id: int
+    session: Session
+    trainee: User
+    present: bool
+    marked_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class TraineeProgress(BaseModel):
+    trainee_id: int
+    trainee: User
+    total_sessions: int
+    attended_sessions: int
+    progress_percentage: float
