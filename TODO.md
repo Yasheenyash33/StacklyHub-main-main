@@ -1,14 +1,11 @@
-- [x] Debug why assigned trainees are not appearing in the trainer's dashboard.
-- [x] Check if the backend is correctly linking trainees to trainers in the database.
-- [x] Verify that the API endpoint fetching trainees is filtering by the logged-in trainer's ID.
-- [x] Ensure the frontend is correctly calling the API and rendering the trainee list.
-- [x] Suggest any fixes to make sure trainee assignments reflect properly in the UI.
+# TODO: Update Frontend Dashboards for Session Assignments
 
-Fixes implemented:
-- Updated AssignTrainerModal to use assignStudent and unassignStudent from AuthContext instead of incorrectly setting assignedTrainer on user.
-- Updated UserManagement to use assignments data for filtering and displaying trainer assignments.
+## Pending Tasks
+- [ ] Update AuthContext to include created_at in session mapping
+- [ ] Update TrainerDashboard to show trainees from trainer's sessions instead of direct assignments
+- [ ] Update TraineeDashboard to display session creation time in IST format
+- [ ] Test the changes to verify correct display
 
-Testing:
-- Test assigning a trainer to a trainee via UserManagement.
-- Verify that the assignment appears in TrainerDashboard "My Trainees" section.
-- Check that unassigning removes the trainee from the dashboard.
+## Completed Tasks
+- [x] Analyze current code and identify changes needed
+- [x] Read relevant files (TrainerDashboard, TraineeDashboard, AuthContext)

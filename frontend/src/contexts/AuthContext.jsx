@@ -97,7 +97,8 @@ export function AuthProvider({ children }) {
         ...session,
         trainer: session.trainer_id,
         trainees: session.trainees.map(t => t.id),
-        startTime: session.scheduled_date
+        startTime: session.scheduled_date,
+        createdAt: session.created_at
       }));
       setSessions(mappedSessions);
 

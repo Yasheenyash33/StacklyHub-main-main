@@ -7,7 +7,8 @@ export function TrainerDashboard() {
   const { user, users, sessions, assignments, progress } = useAuth();
 
   const mySessions = sessions.filter(s => s.trainer === user.id);
-  const myTraineeIds = assignments.filter(a => a.teacher.id === user.id).map(a => a.student.id);
+  // Get unique trainee IDs from all sessions created by this trainer
+  const myTraineeIds = [...new Set(mySessions.flatMap(s => s.trainees))];
   const myTrainees = users.filter(u => myTraineeIds.includes(u.id));
   const upcomingSessions = mySessions.filter(s => s.status === 'scheduled');
   const completedSessions = mySessions.filter(s => s.status === 'completed');

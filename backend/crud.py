@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime, timezone
 import secrets
 import string
+import pytz
 
 from database import models
 from backend import schemas
@@ -177,6 +178,15 @@ def get_sessions_by_status(db: Session, status: models.SessionStatus):
 def create_session(db: Session, session: schemas.SessionCreate):
     session_data = session.dict()
     trainees = session_data.pop('trainees', [])
+
+    # Set creation time in IST
+    ist = pytz.timezone('Asia/Kolkata')
+    now_utc = datetime.now(timezone.utc)
+    now_ist = now_utc.astimezone(ist)
+
+    session_data['created_at'] = now_ist
+    session_data['updated_at'] = now_ist
+
     db_session = models.Session(**session_data)
     db.add(db_session)
     db.commit()

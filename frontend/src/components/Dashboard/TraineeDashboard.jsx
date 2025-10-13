@@ -2,6 +2,7 @@ import React from 'react';
 import { BookOpen, Clock, Award, TrendingUp, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
+import { formatIST } from '../../utils/timezone';
 import toast from 'react-hot-toast';
 
 export function TraineeDashboard() {
@@ -92,7 +93,7 @@ export function TraineeDashboard() {
                         <p className="text-gray-300 text-sm mt-1">{session.description}</p>
                         <div className="flex items-center space-x-4 mt-3">
                           <p className="text-gray-400 text-sm">
-                            {format(new Date(session.startTime), 'MMM d, h:mm a')}
+                            Created: {formatIST(session.createdAt, 'datetime')}
                           </p>
                           <p className="text-gray-400 text-sm">
                             by {trainer?.name}
@@ -184,7 +185,7 @@ export function TraineeDashboard() {
                   <div>
                     <h4 className="font-medium text-white">{session.title}</h4>
                     <p className="text-gray-400 text-sm">
-                      {format(new Date(session.startTime), 'MMM d, yyyy')} • by {trainer?.name}
+                      Created: {formatIST(session.createdAt, 'datetime')} • by {trainer?.name}
                     </p>
                   </div>
                 </div>

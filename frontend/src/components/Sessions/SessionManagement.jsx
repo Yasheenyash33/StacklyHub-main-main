@@ -154,6 +154,10 @@ export function SessionManagement() {
                       </p>
                     )}
 
+                    <p className="text-gray-400 text-sm mb-4">
+                      Session created on {isValid(new Date(session.created_at)) ? format(new Date(session.created_at), 'EEEE, d MMMM yyyy \'at\' hh:mm a \'IST\'') : 'Invalid date'}
+                    </p>
+
                     {enrolledTrainees.length > 0 && user.role !== 'trainee' && (
                       <div className="mb-4">
                         <h4 className="text-sm font-medium text-white mb-2">Enrolled Trainees:</h4>
