@@ -451,6 +451,17 @@ def get_trainees_progress_for_trainer(trainer_id: int, db: Session = Depends(get
 
     return crud.get_trainees_progress_for_trainer(db, trainer_id)
 
+@app.get("/trainers/{trainer_id}/trainees")
+def get_trainees_for_trainer(trainer_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.value not in ["admin", "trainer"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if current_user.role.value == "trainer" and current_user.id != trainer_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    trainees_data = crud.get_trainees_for_trainer(db, trainer_id)
+    return trainees_data
+
 # User routes
 @app.get("/users/", response_model=List[schemas.User])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Users, BookOpen, Clock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
+import { formatIST } from '../../utils/timezone';
 
 export function TrainerDashboard() {
-  const { user, users, sessions, assignments, progress } = useAuth();
+  const { user, users, sessions, assignments, progress, token } = useAuth();
+  const [myTraineesData, setMyTraineesData] = useState([]);
+  const [loadingTrainees, setLoadingTrainees] = useState(true);
 
   const mySessions = sessions.filter(s => s.trainer === user.id);
   // Get unique trainee IDs from all sessions created by this trainer
@@ -12,6 +15,37 @@ export function TrainerDashboard() {
   const myTrainees = users.filter(u => myTraineeIds.includes(u.id));
   const upcomingSessions = mySessions.filter(s => s.status === 'scheduled');
   const completedSessions = mySessions.filter(s => s.status === 'completed');
+
+  // Fetch trainees data from backend
+  useEffect(() => {
+    const fetchTraineesData = async () => {
+      if (!token || !user) return;
+
+      try {
+        const response = await fetch(`http://localhost:8002/trainers/${user.id}/trainees`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setMyTraineesData(data);
+        } else {
+          console.error('Failed to fetch trainees data');
+          setMyTraineesData([]);
+        }
+      } catch (error) {
+        console.error('Error fetching trainees data:', error);
+        setMyTraineesData([]);
+      } finally {
+        setLoadingTrainees(false);
+      }
+    };
+
+    fetchTraineesData();
+  }, [token, user]);
 
   const stats = [
     {
@@ -94,20 +128,34 @@ export function TrainerDashboard() {
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">My Trainees</h3>
           <div className="space-y-4">
-            {myTrainees.length === 0 ? (
+            {loadingTrainees ? (
+              <p className="text-gray-400 text-sm">Loading trainees...</p>
+            ) : myTraineesData.length === 0 ? (
               <p className="text-gray-400 text-sm">No assigned trainees</p>
             ) : (
-              myTrainees.map((trainee) => (
-                <div key={trainee.id} className="flex items-center space-x-4 bg-gray-700 border border-gray-600 rounded-lg p-4">
-                  <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
+              myTraineesData.map((item) => (
+                <div key={item.trainee.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4">
+                  <div className="flex items-center space-x-4 mb-3">
+                    <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                      <Users className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-white">{item.trainee.first_name} {item.trainee.last_name}</h4>
+                      <p className="text-gray-400 text-sm">{item.trainee.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-green-400 text-sm font-medium">Active</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-white">{trainee.name}</h4>
-                    <p className="text-gray-400 text-sm">{trainee.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-green-400 text-sm font-medium">Active</p>
+                  <div className="space-y-2">
+                    {item.sessions.map((session) => (
+                      <div key={session.id} className="flex justify-between items-center bg-gray-600 rounded p-2">
+                        <span className="text-white text-sm font-medium">{session.title}</span>
+                        <span className="text-gray-300 text-xs">
+                          Created: {formatIST(session.created_at, 'datetime')}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))

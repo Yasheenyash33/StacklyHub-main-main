@@ -115,7 +115,7 @@ export function TraineeDashboard() {
           </div>
         </div>
 
-        {/* Progress Overview */}
+      {/* Progress Overview */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Learning Progress</h3>
           <div className="space-y-6">
@@ -128,10 +128,10 @@ export function TraineeDashboard() {
                 </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className="bg-green-600 h-2 rounded-full transition-all duration-500"
-                  style={{ 
-                    width: `${mySessions.length ? (completedSessions.length / mySessions.length) * 100 : 0}%` 
+                  style={{
+                    width: `${mySessions.length ? (completedSessions.length / mySessions.length) * 100 : 0}%`
                   }}
                 ></div>
               </div>
@@ -167,6 +167,64 @@ export function TraineeDashboard() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* My Sessions */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">My Sessions</h3>
+        <div className="space-y-4">
+          {mySessions.length === 0 ? (
+            <p className="text-gray-400 text-sm">No sessions found. You haven't been assigned to any sessions yet.</p>
+          ) : (
+            mySessions.map((session) => {
+              const trainer = users.find(u => u.id === session.trainer);
+              const attendance = session.attendance && session.attendance[user.id];
+              const statusColor = session.status === 'completed' ? 'bg-green-600' : session.status === 'cancelled' ? 'bg-red-600' : 'bg-blue-600';
+              return (
+                <div key={session.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h4 className="font-medium text-white">{session.title}</h4>
+                        <span className={`text-xs px-2 py-1 rounded text-white ${statusColor}`}>
+                          {session.status}
+                        </span>
+                      </div>
+                      <p className="text-gray-300 text-sm mb-2">{session.description}</p>
+                      <div className="flex items-center space-x-4 text-gray-400 text-sm">
+                        <p>Scheduled: {formatIST(session.startTime, 'datetime')}</p>
+                        <p>by {trainer?.name}</p>
+                        <p>Duration: {session.duration_minutes} min</p>
+                      </div>
+                      {session.classLink && (
+                        <button
+                          onClick={() => handleJoinSession(session)}
+                          className="mt-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex items-center space-x-1 transition-colors duration-200"
+                        >
+                          <span>Join</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                    {attendance && (
+                      <div className="ml-4">
+                        {attendance.present ? (
+                          <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">
+                            Attended
+                          </span>
+                        ) : (
+                          <span className="bg-red-600 text-white text-xs px-2 py-1 rounded">
+                            Absent
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

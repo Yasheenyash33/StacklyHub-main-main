@@ -1,11 +1,14 @@
-# TODO: Update Frontend Dashboards for Session Assignments
+# TODO: Connect "My Trainees" Section to Backend
 
-## Pending Tasks
-- [ ] Update AuthContext to include created_at in session mapping
-- [ ] Update TrainerDashboard to show trainees from trainer's sessions instead of direct assignments
-- [ ] Update TraineeDashboard to display session creation time in IST format
-- [ ] Test the changes to verify correct display
+## Backend Changes
+- [x] Add `get_trainees_for_trainer(db, trainer_id)` function in backend/crud.py
+- [x] Add new endpoint `/trainers/{trainer_id}/trainees` in backend/main.py with proper authorization
 
-## Completed Tasks
-- [x] Analyze current code and identify changes needed
-- [x] Read relevant files (TrainerDashboard, TraineeDashboard, AuthContext)
+## Frontend Changes
+- [x] Update TrainerDashboard.jsx to fetch data from new endpoint
+- [x] Update "My Trainees" section to display trainee name, session title, and creation time in IST
+
+## Testing
+- [ ] Test the new endpoint for correct data retrieval
+- [ ] Verify IST formatting in the UI
+- [ ] Ensure proper error handling for fetch failures

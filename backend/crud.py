@@ -399,3 +399,35 @@ def get_trainees_progress_for_trainer(db: Session, trainer_id: int):
         progress_list.append(progress)
 
     return progress_list
+
+def get_trainees_for_trainer(db: Session, trainer_id: int):
+    # Get all sessions created by this trainer
+    sessions = db.query(models.Session).filter(models.Session.trainer_id == trainer_id).all()
+
+    trainee_sessions = {}
+    for session in sessions:
+        # Get trainees for this session
+        session_trainees = db.query(models.SessionTrainee).filter(models.SessionTrainee.session_id == session.id).all()
+        for st in session_trainees:
+            trainee_id = st.trainee_id
+            if trainee_id not in trainee_sessions:
+                trainee = get_user(db, trainee_id)
+                trainee_sessions[trainee_id] = {
+                    'trainee': trainee,
+                    'sessions': []
+                }
+            trainee_sessions[trainee_id]['sessions'].append({
+                'id': session.id,
+                'title': session.title,
+                'created_at': session.created_at
+            })
+
+    # Convert to list format
+    result = []
+    for trainee_id, data in trainee_sessions.items():
+        result.append({
+            'trainee': data['trainee'],
+            'sessions': data['sessions']
+        })
+
+    return result
