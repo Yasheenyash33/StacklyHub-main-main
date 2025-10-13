@@ -554,8 +554,8 @@ export function AuthProvider({ children }) {
       // WebSocket will update state
       return assignment;
     } catch (error) {
-      console.error('Assign student error:', error);
-      return null;
+      console.error('Assign student error:', error.message);
+      throw error;
     }
   };
 

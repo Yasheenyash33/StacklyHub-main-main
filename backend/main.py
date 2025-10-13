@@ -269,10 +269,27 @@ async def assign_student(assignment: schemas.AssignedStudentCreate, db: Session 
     # Check if student and teacher exist
     student = crud.get_user(db, assignment.student_id)
     teacher = crud.get_user(db, assignment.teacher_id)
-    if not student or student.role != "trainee":
+    if not student:
         raise HTTPException(status_code=400, detail="Invalid student")
-    if not teacher or teacher.role != "trainer":
+    if not teacher:
         raise HTTPException(status_code=400, detail="Invalid teacher")
+
+    # Handle role comparison for both enum and string types
+    student_role = getattr(student.role, 'value', student.role)
+    teacher_role = getattr(teacher.role, 'value', teacher.role)
+
+    if student_role != "trainee":
+        raise HTTPException(status_code=400, detail="Invalid student")
+    if teacher_role != "trainer":
+        raise HTTPException(status_code=400, detail="Invalid teacher")
+
+    # Check if already assigned
+    existing = db.query(models.AssignedStudent).filter(
+        models.AssignedStudent.student_id == assignment.student_id,
+        models.AssignedStudent.teacher_id == assignment.teacher_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Student is already assigned to this trainer")
 
     created_assignment = crud.assign_student_to_teacher(db, assignment.student_id, assignment.teacher_id)
 

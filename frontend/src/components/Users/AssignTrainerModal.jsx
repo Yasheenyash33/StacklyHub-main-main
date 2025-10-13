@@ -14,21 +14,24 @@ export function AssignTrainerModal({ trainee, onClose, onSuccess }) {
 
     const trainerId = selectedTrainer ? parseInt(selectedTrainer) : null;
 
-    if (trainerId) {
-      // Assign
-      const success = await assignStudent(trainee.id, trainerId);
-      if (success) {
+    try {
+      if (trainerId) {
+        // Assign
+        await assignStudent(trainee.id, trainerId);
         onSuccess();
+      } else if (currentAssignment) {
+        // Unassign
+        const success = await unassignStudent(trainee.id, currentAssignment.teacher.id);
+        if (success) {
+          onSuccess();
+        }
+      } else {
+        // No change
+        onClose();
       }
-    } else if (currentAssignment) {
-      // Unassign
-      const success = await unassignStudent(trainee.id, currentAssignment.teacher.id);
-      if (success) {
-        onSuccess();
-      }
-    } else {
-      // No change
-      onClose();
+    } catch (error) {
+      // Error is already logged in AuthContext
+      // Optionally show toast or alert here if needed
     }
   };
 

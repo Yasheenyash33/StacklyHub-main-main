@@ -294,7 +294,7 @@ def assign_student_to_teacher(db: Session, student_id: int, teacher_id: int):
     if existing:
         return existing
 
-    assignment = models.AssignedStudent(student_id=student_id, teacher_id=teacher_id)
+    assignment = models.AssignedStudent(student_id=student_id, teacher_id=teacher_id, assigned_date=datetime.now(timezone.utc))
     db.add(assignment)
     db.commit()
     db.refresh(assignment)

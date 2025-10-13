@@ -141,10 +141,11 @@ class UserUpdateEvent(BaseModel):
 class AssignedStudentBase(BaseModel):
     student_id: int
     teacher_id: int
-    assigned_date: datetime
+    assigned_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class AssignedStudentCreate(AssignedStudentBase):
-    pass
+class AssignedStudentCreate(BaseModel):
+    student_id: int
+    teacher_id: int
 
 class AssignedStudent(AssignedStudentBase):
     id: int
