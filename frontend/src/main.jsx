@@ -16,7 +16,7 @@ if (container) {
 export default {
   build: {
     rollupOptions: {
-      input: '/src/main.jsx', // Changed from main.tsx to main.jsx
+      input: '/src/main.jsx', 
     },
   },
 }
