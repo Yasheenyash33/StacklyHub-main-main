@@ -8,7 +8,8 @@ import toast from 'react-hot-toast';
 export function TraineeDashboard() {
   const { user, sessions, users, assignments, progress } = useAuth();
 
-  const mySessions = sessions.filter(s => s.trainees && s.trainees.includes(user.id));
+  // Sessions are now filtered on backend, so all sessions are already assigned to this trainee
+  const mySessions = sessions;
   const upcomingSessions = mySessions.filter(s => s.status === 'scheduled');
   const completedSessions = mySessions.filter(s => s.status === 'completed');
 
@@ -75,96 +76,55 @@ export function TraineeDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Upcoming Sessions */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Upcoming Sessions</h3>
-          <div className="space-y-4">
-            {upcomingSessions.length === 0 ? (
-              <p className="text-gray-400 text-sm">No upcoming sessions</p>
-            ) : (
-              upcomingSessions.map((session) => {
-                const trainer = users.find(u => u.id === session.trainer);
-                return (
-                  <div key={session.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-white">{session.title}</h4>
-                        <p className="text-gray-300 text-sm mt-1">{session.description}</p>
-                        <div className="flex items-center space-x-4 mt-3">
-                          <p className="text-gray-400 text-sm">
-                            Created: {formatIST(session.createdAt, 'datetime')}
-                          </p>
-                          <p className="text-gray-400 text-sm">
-                            by {trainer?.name}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleJoinSession(session)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex items-center space-x-1 transition-colors duration-200"
-                      >
-                        <span>Join</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
       {/* Progress Overview */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Learning Progress</h3>
-          <div className="space-y-6">
-            {/* Overall Progress */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-300 text-sm font-medium">Overall Completion</span>
-                <span className="text-green-400 text-sm font-medium">
-                  {mySessions.length ? Math.round((completedSessions.length / mySessions.length) * 100) : 0}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-green-600 h-2 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${mySessions.length ? (completedSessions.length / mySessions.length) * 100 : 0}%`
-                  }}
-                ></div>
-              </div>
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Learning Progress</h3>
+        <div className="space-y-6">
+          {/* Overall Progress */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-300 text-sm font-medium">Overall Completion</span>
+              <span className="text-green-400 text-sm font-medium">
+                {mySessions.length ? Math.round((completedSessions.length / mySessions.length) * 100) : 0}%
+              </span>
             </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div
+                className="bg-green-600 h-2 rounded-full transition-all duration-500"
+                style={{
+                  width: `${mySessions.length ? (completedSessions.length / mySessions.length) * 100 : 0}%`
+                }}
+              ></div>
+            </div>
+          </div>
 
-            {/* My Trainer */}
-            {myTrainer && (
-              <div className="bg-gray-700 border border-gray-600 rounded-lg p-4">
-                <h4 className="text-white font-medium mb-2">My Trainer</h4>
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {myTrainer.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">{myTrainer.name}</p>
-                    <p className="text-gray-400 text-sm">{myTrainer.email}</p>
-                  </div>
+          {/* My Trainer */}
+          {myTrainer && (
+            <div className="bg-gray-700 border border-gray-600 rounded-lg p-4">
+              <h4 className="text-white font-medium mb-2">My Trainer</h4>
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {myTrainer.name.charAt(0)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-white font-medium">{myTrainer.name}</p>
+                  <p className="text-gray-400 text-sm">{myTrainer.email}</p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-white">{completedSessions.length}</p>
-                <p className="text-gray-400 text-sm">Completed</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-white">{upcomingSessions.length}</p>
-                <p className="text-gray-400 text-sm">Upcoming</p>
-              </div>
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{completedSessions.length}</p>
+              <p className="text-gray-400 text-sm">Completed</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{upcomingSessions.length}</p>
+              <p className="text-gray-400 text-sm">Upcoming</p>
             </div>
           </div>
         </div>
@@ -177,10 +137,18 @@ export function TraineeDashboard() {
           {mySessions.length === 0 ? (
             <p className="text-gray-400 text-sm">No sessions found. You haven't been assigned to any sessions yet.</p>
           ) : (
-            mySessions.map((session) => {
+            // Sort sessions: upcoming first, then by date
+            [...mySessions].sort((a, b) => {
+              const aIsUpcoming = a.status === 'scheduled';
+              const bIsUpcoming = b.status === 'scheduled';
+              if (aIsUpcoming && !bIsUpcoming) return -1;
+              if (!aIsUpcoming && bIsUpcoming) return 1;
+              return new Date(a.startTime) - new Date(b.startTime);
+            }).map((session) => {
               const trainer = users.find(u => u.id === session.trainer);
               const attendance = session.attendance && session.attendance[user.id];
               const statusColor = session.status === 'completed' ? 'bg-green-600' : session.status === 'cancelled' ? 'bg-red-600' : 'bg-blue-600';
+              const isUpcoming = session.status === 'scheduled';
               return (
                 <div key={session.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4">
                   <div className="flex items-start justify-between">
@@ -197,7 +165,7 @@ export function TraineeDashboard() {
                         <p>by {trainer?.name}</p>
                         <p>Duration: {session.duration_minutes} min</p>
                       </div>
-                      {session.classLink && (
+                      {isUpcoming && session.classLink && (
                         <button
                           onClick={() => handleJoinSession(session)}
                           className="mt-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex items-center space-x-1 transition-colors duration-200"

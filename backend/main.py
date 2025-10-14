@@ -66,8 +66,8 @@ models.Base.metadata.create_all(bind=engine)
 # CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
@@ -587,16 +587,34 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), current_user:
 def read_sessions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     logging.info(f"read_sessions called by user {current_user.username} with role {current_user.role}")
     sessions = crud.get_sessions(db, skip=skip, limit=limit)
-    # Populate trainees
-    result = []
+
+    # Filter sessions based on user role for security
+    filtered_sessions = []
     for session in sessions:
+        if current_user.role.value == "admin":
+            # Admins see all sessions
+            filtered_sessions.append(session)
+        elif current_user.role.value == "trainer":
+            # Trainers see only sessions they created
+            if session.trainer_id == current_user.id:
+                filtered_sessions.append(session)
+        elif current_user.role.value == "trainee":
+            # Trainees see only sessions they're assigned to
+            session_trainees = crud.get_session_trainees(db, session.id)
+            trainee_ids = [st.trainee_id for st in session_trainees]
+            if current_user.id in trainee_ids:
+                filtered_sessions.append(session)
+
+    # Populate trainees for filtered sessions
+    result = []
+    for session in filtered_sessions:
         session_trainees = crud.get_session_trainees(db, session.id)
         trainees = [st.trainee for st in session_trainees]
         result.append({
             **session.__dict__,
             'trainees': trainees
         })
-    logging.info(f"Retrieved {len(result)} sessions")
+    logging.info(f"Retrieved {len(result)} filtered sessions for user {current_user.username}")
     logging.info("read_sessions completed")
     return result
 

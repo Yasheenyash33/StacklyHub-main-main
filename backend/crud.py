@@ -401,33 +401,44 @@ def get_trainees_progress_for_trainer(db: Session, trainer_id: int):
     return progress_list
 
 def get_trainees_for_trainer(db: Session, trainer_id: int):
-    # Get all sessions created by this trainer
-    sessions = db.query(models.Session).filter(models.Session.trainer_id == trainer_id).all()
+    from datetime import timedelta
+    # Get all trainees assigned to this trainer
+    assignments = db.query(models.AssignedStudent).filter(models.AssignedStudent.teacher_id == trainer_id).all()
 
-    trainee_sessions = {}
-    for session in sessions:
-        # Get trainees for this session
-        session_trainees = db.query(models.SessionTrainee).filter(models.SessionTrainee.session_id == session.id).all()
-        for st in session_trainees:
-            trainee_id = st.trainee_id
-            if trainee_id not in trainee_sessions:
-                trainee = get_user(db, trainee_id)
-                trainee_sessions[trainee_id] = {
-                    'trainee': trainee,
-                    'sessions': []
-                }
-            trainee_sessions[trainee_id]['sessions'].append({
-                'id': session.id,
-                'title': session.title,
-                'created_at': session.created_at
-            })
-
-    # Convert to list format
     result = []
-    for trainee_id, data in trainee_sessions.items():
+    for assignment in assignments:
+        trainee = assignment.student
+        # Get sessions created by this trainer that include this trainee
+        sessions = db.query(models.Session).join(models.SessionTrainee).filter(
+            models.Session.trainer_id == trainer_id,
+            models.SessionTrainee.trainee_id == trainee.id
+        ).all()
+
+        sessions_data = [{
+            'id': session.id,
+            'title': session.title,
+            'created_at': session.created_at
+        } for session in sessions]
+
+        sessions_count = len(sessions_data)
+        # Get last active: max of session created_at or attendance marked_at
+        last_session_date = max([s['created_at'] for s in sessions_data]) if sessions_data else None
+        # Get last attendance in any session with this trainer
+        last_attendance = db.query(models.Attendance).join(models.Session).filter(
+            models.Attendance.trainee_id == trainee.id,
+            models.Session.trainer_id == trainer_id
+        ).order_by(models.Attendance.marked_at.desc()).first()
+        last_attendance_date = last_attendance.marked_at if last_attendance else None
+        last_active = max([d for d in [last_session_date, last_attendance_date] if d], default=None)
+        # Status: active if last active within 30 days
+        status = 'active' if last_active and (datetime.now(timezone.utc) - last_active) < timedelta(days=30) else 'inactive'
+
         result.append({
-            'trainee': data['trainee'],
-            'sessions': data['sessions']
+            'trainee': trainee,
+            'sessions': sessions_data,
+            'sessions_count': sessions_count,
+            'last_active': last_active,
+            'status': status
         })
 
     return result
