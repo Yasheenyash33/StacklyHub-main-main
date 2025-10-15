@@ -131,6 +131,7 @@ The Training Management System is designed to streamline the process of organizi
 2. **Start the Frontend Development Server:**
    ```bash
    # In a new terminal, from the root directory
+   cd frontend
    npm run dev
    ```
    The frontend will start on `http://localhost:5173`
