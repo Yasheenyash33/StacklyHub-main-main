@@ -141,6 +141,20 @@ export function AuthProvider({ children }) {
     }
   }, [token, user, authHeaders, logout]);
   
+  // Helper function to check if a session should be visible to the current user
+  const isSessionVisible = useCallback((sessionData) => {
+    if (!user) return false;
+
+    if (user.role === 'admin') {
+      return true; // Admins see all sessions
+    } else if (user.role === 'trainer') {
+      return sessionData.trainer === user.id; // Trainers see only their sessions
+    } else if (user.role === 'trainee') {
+      return (sessionData.trainees || []).includes(user.id); // Trainees see only sessions they're assigned to
+    }
+    return false;
+  }, [user]);
+
   // WebSocket message handler
   const handleWsMessage = useCallback((event) => {
     try {
@@ -162,19 +176,64 @@ export function AuthProvider({ children }) {
           }
           break;
         case 'session_created':
-          setSessions(prev => [...prev, message.data]);
+          // Only add session if it's visible to current user
+          if (isSessionVisible(message.data)) {
+            setSessions(prev => [...prev, message.data]);
+          }
           break;
         case 'session_updated':
-          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, status: message.data.status, updated_at: message.data.updated_at, trainees: message.data.trainees || s.trainees, trainer: message.data.trainer || s.trainer, startTime: message.data.startTime || s.startTime } : s));
+          setSessions(prev => prev.map(s => {
+            if (s.id === message.data.session_id) {
+              const updatedSession = {
+                ...s,
+                status: message.data.status,
+                updated_at: message.data.updated_at,
+                trainees: message.data.trainees || s.trainees,
+                trainer: message.data.trainer || s.trainer,
+                startTime: message.data.startTime || s.startTime
+              };
+              // Check if session is still visible after update
+              return isSessionVisible(updatedSession) ? updatedSession : null;
+            }
+            return s;
+          }).filter(Boolean)); // Remove null entries (sessions no longer visible)
           break;
         case 'session_deleted':
           setSessions(prev => prev.filter(s => s.id !== message.data.session_id));
           break;
         case 'trainee_added_to_session':
-          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, trainees: [...(s.trainees || []), message.data.trainee_id] } : s));
+          setSessions(prev => prev.map(s => {
+            if (s.id === message.data.session_id) {
+              const updatedTrainees = [...(s.trainees || []), message.data.trainee_id];
+              const updatedSession = { ...s, trainees: updatedTrainees };
+              // If current user is a trainee and was added, or if session becomes visible
+              if (user.role === 'trainee' && message.data.trainee_id === user.id) {
+                return updatedSession;
+              } else if (isSessionVisible(updatedSession)) {
+                return updatedSession;
+              } else {
+                return null; // Remove if no longer visible
+              }
+            }
+            return s;
+          }).filter(Boolean));
           break;
         case 'trainee_removed_from_session':
-          setSessions(prev => prev.map(s => s.id === message.data.session_id ? { ...s, trainees: (s.trainees || []).filter(id => id !== message.data.trainee_id) } : s));
+          setSessions(prev => prev.map(s => {
+            if (s.id === message.data.session_id) {
+              const updatedTrainees = (s.trainees || []).filter(id => id !== message.data.trainee_id);
+              const updatedSession = { ...s, trainees: updatedTrainees };
+              // If current user is a trainee and was removed, or if session is no longer visible
+              if (user.role === 'trainee' && message.data.trainee_id === user.id) {
+                return null; // Remove session from trainee's view
+              } else if (isSessionVisible(updatedSession)) {
+                return updatedSession;
+              } else {
+                return null; // Remove if no longer visible
+              }
+            }
+            return s;
+          }).filter(Boolean));
           break;
         case 'student_assigned':
         case 'student_unassigned':
@@ -190,7 +249,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Error handling WebSocket message:', error);
     }
-  }, [user, logout, authHeaders]);
+  }, [user, logout, authHeaders, isSessionVisible]);
 
   // Setup WebSocket connection with reconnection
   useEffect(() => {
