@@ -337,7 +337,12 @@ Based on the project structure, here's a comprehensive step-by-step guide to dep
    ```bash
    git clone <repository-url>
    cd training-management-system
-   sudo mysql -u training_user -p training_app < database/setup_mysql.sql
+   sudo mysql -u root -p < database/setup_mysql.sql
+   ```
+
+   Alternatively, use the provided Python script (ensure Python and pymysql are installed):
+   ```bash
+   python scripts/setup_db.py
    ```
 
 5. **Run Migrations (if any):**
