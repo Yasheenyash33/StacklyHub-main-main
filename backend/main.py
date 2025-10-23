@@ -255,9 +255,9 @@ def read_assignments(skip: int = 0, limit: int = 100, db: Session = Depends(get_
         })
     # Filter based on role
     if current_user.role.value == "trainee":
-        result = [a for a in result if a["student"]["id"] == current_user.id]
+        result = [a for a in result if a["student"].id == current_user.id]
     elif current_user.role.value == "trainer":
-        result = [a for a in result if a["teacher"]["id"] == current_user.id]
+        result = [a for a in result if a["teacher"].id == current_user.id]
     # For admin, return all
     return result
 
