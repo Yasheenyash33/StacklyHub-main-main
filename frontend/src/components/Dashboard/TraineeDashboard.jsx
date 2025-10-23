@@ -1,12 +1,14 @@
-import React from 'react';
-import { BookOpen, Clock, Award, TrendingUp, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { BookOpen, Clock, Award, TrendingUp, ExternalLink, Calendar } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { formatIST } from '../../utils/timezone';
 import toast from 'react-hot-toast';
+import { CalendarView } from '../CalendarView';
 
 export function TraineeDashboard() {
   const { user, sessions, users, assignments, progress } = useAuth();
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' or 'calendar'
 
   // Sessions are now filtered on backend, so all sessions are already assigned to this trainee
   const mySessions = sessions;
@@ -52,12 +54,51 @@ export function TraineeDashboard() {
     }
   };
 
+  const handleSessionClick = (session) => {
+    // Handle session click - could open a modal or navigate to session details
+    console.log('Session clicked:', session);
+  };
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white">My Learning Dashboard</h1>
-        <p className="mt-2 text-gray-400">Track your progress and upcoming sessions</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white">My Learning Dashboard</h1>
+          <p className="mt-2 text-gray-400">Track your progress and upcoming sessions</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setViewMode('dashboard')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              viewMode === 'dashboard'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+              viewMode === 'calendar'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Calendar</span>
+          </button>
+        </div>
       </div>
+
+      {viewMode === 'calendar' ? (
+        <CalendarView
+          sessions={mySessions}
+          user={user}
+          onSessionClick={handleSessionClick}
+        />
+      ) : (
+        <>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -196,45 +237,47 @@ export function TraineeDashboard() {
         </div>
       </div>
 
-      {/* Recent Completed Sessions */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Recently Completed</h3>
-        <div className="space-y-4">
-          {completedSessions.slice(0, 5).map((session) => {
-            const trainer = users.find(u => u.id === session.trainer);
-            const attendance = session.attendance[user.id];
-            
-            return (
-              <div key={session.id} className="flex items-center justify-between bg-gray-700 border border-gray-600 rounded-lg p-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <div>
-                    <h4 className="font-medium text-white">{session.title}</h4>
-                    <p className="text-gray-400 text-sm">
-                      Created: {formatIST(session.createdAt, 'datetime')} • by {trainer?.name}
-                    </p>
+          {/* Recent Completed Sessions */}
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Recently Completed</h3>
+            <div className="space-y-4">
+              {completedSessions.slice(0, 5).map((session) => {
+                const trainer = users.find(u => u.id === session.trainer);
+                const attendance = session.attendance[user.id];
+
+                return (
+                  <div key={session.id} className="flex items-center justify-between bg-gray-700 border border-gray-600 rounded-lg p-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <div>
+                        <h4 className="font-medium text-white">{session.title}</h4>
+                        <p className="text-gray-400 text-sm">
+                          Created: {formatIST(session.createdAt, 'datetime')} • by {trainer?.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {attendance?.present ? (
+                        <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">
+                          Attended
+                        </span>
+                      ) : (
+                        <span className="bg-red-600 text-white text-xs px-2 py-1 rounded">
+                          Absent
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  {attendance?.present ? (
-                    <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">
-                      Attended
-                    </span>
-                  ) : (
-                    <span className="bg-red-600 text-white text-xs px-2 py-1 rounded">
-                      Absent
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          
-          {completedSessions.length === 0 && (
-            <p className="text-gray-400 text-sm">No completed sessions yet</p>
-          )}
-        </div>
-      </div>
+                );
+              })}
+
+              {completedSessions.length === 0 && (
+                <p className="text-gray-400 text-sm">No completed sessions yet</p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

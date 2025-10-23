@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { formatIST } from '../../utils/timezone';
 import { CreateSessionModal } from '../Sessions/CreateSessionModal';
+import { CalendarView } from '../CalendarView';
 
 export function TrainerDashboard() {
   const { user, users, sessions, assignments, progress, token } = useAuth();
@@ -13,6 +14,7 @@ export function TrainerDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTrainee, setSelectedTrainee] = useState(null);
   const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' or 'calendar'
 
   const mySessions = sessions.filter(s => s.trainer === user.id);
   const upcomingSessions = mySessions.filter(s => s.status === 'scheduled');
@@ -88,6 +90,11 @@ export function TrainerDashboard() {
     }
   ];
 
+  const handleSessionClick = (session) => {
+    // Handle session click - could open a modal or navigate to session details
+    console.log('Session clicked:', session);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -95,14 +102,48 @@ export function TrainerDashboard() {
           <h1 className="text-3xl font-bold text-white">Trainer Dashboard</h1>
           <p className="mt-2 text-gray-400">Manage your sessions and track trainee progress</p>
         </div>
-        <button
-          onClick={() => setShowCreateSessionModal(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Create Session</span>
-        </button>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setViewMode('dashboard')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                viewMode === 'dashboard'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                viewMode === 'calendar'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              <span>Calendar</span>
+            </button>
+          </div>
+          <button
+            onClick={() => setShowCreateSessionModal(true)}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Create Session</span>
+          </button>
+        </div>
       </div>
+
+      {viewMode === 'calendar' ? (
+        <CalendarView
+          sessions={mySessions}
+          user={user}
+          onSessionClick={handleSessionClick}
+        />
+      ) : (
+        <>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -350,11 +391,13 @@ export function TrainerDashboard() {
         </div>
       </div>
 
-      {showCreateSessionModal && (
-        <CreateSessionModal
-          onClose={() => setShowCreateSessionModal(false)}
-          onSuccess={() => setShowCreateSessionModal(false)}
-        />
+          {showCreateSessionModal && (
+            <CreateSessionModal
+              onClose={() => setShowCreateSessionModal(false)}
+              onSuccess={() => setShowCreateSessionModal(false)}
+            />
+          )}
+        </>
       )}
     </div>
   );

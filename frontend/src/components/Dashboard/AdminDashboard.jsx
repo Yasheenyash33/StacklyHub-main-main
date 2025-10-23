@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Users, BookOpen, TrendingUp, Award } from 'lucide-react';
+import { Users, BookOpen, TrendingUp, Award, Calendar } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
 import { CreateUserModal } from '../Users/CreateUserModal';
 import { CreateSessionModal } from '../Sessions/CreateSessionModal';
+import { CalendarView } from '../CalendarView';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444'];
 
@@ -13,6 +14,7 @@ export function AdminDashboard() {
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
   const [reportFormat, setReportFormat] = useState('pdf');
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' or 'calendar'
 
   // Map user assignments for quick lookup
   const studentToTrainerMap = {};
@@ -107,12 +109,51 @@ export function AdminDashboard() {
     }
   };
 
+  const handleSessionClick = (session) => {
+    // Handle session click - could open a modal or navigate to session details
+    console.log('Session clicked:', session);
+  };
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-        <p className="mt-2 text-gray-400">Overview of system performance and metrics</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+          <p className="mt-2 text-gray-400">Overview of system performance and metrics</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setViewMode('dashboard')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              viewMode === 'dashboard'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+              viewMode === 'calendar'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Calendar</span>
+          </button>
+        </div>
       </div>
+
+      {viewMode === 'calendar' ? (
+        <CalendarView
+          sessions={sessions}
+          user={user}
+          onSessionClick={handleSessionClick}
+        />
+      ) : (
+        <>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -267,18 +308,20 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {showCreateUserModal && (
-        <CreateUserModal
-          onClose={() => setShowCreateUserModal(false)}
-          onSuccess={() => setShowCreateUserModal(false)}
-        />
-      )}
+          {showCreateUserModal && (
+            <CreateUserModal
+              onClose={() => setShowCreateUserModal(false)}
+              onSuccess={() => setShowCreateUserModal(false)}
+            />
+          )}
 
-      {showCreateSessionModal && (
-        <CreateSessionModal
-          onClose={() => setShowCreateSessionModal(false)}
-          onSuccess={() => setShowCreateSessionModal(false)}
-        />
+          {showCreateSessionModal && (
+            <CreateSessionModal
+              onClose={() => setShowCreateSessionModal(false)}
+              onSuccess={() => setShowCreateSessionModal(false)}
+            />
+          )}
+        </>
       )}
     </div>
   );
