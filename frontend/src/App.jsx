@@ -14,6 +14,7 @@ import { SessionManagement } from './components/Sessions/SessionManagement';
 import { UserManagement } from './components/Users/UserManagement';
 import { Analytics } from './components/Analytics/Analytics';
 import { Settings } from './components/Settings/Settings';
+import { CalendarPage } from './components/CalendarPage';
 
 function Loading() {
   return (
@@ -89,14 +90,13 @@ function AppContent() {
           } 
         />
         
-        <Route 
-          path="/calendar" 
+        <Route
+          path="/calendar"
           element={
-            <div className="text-center py-8">
-              <h1 className="text-2xl font-bold text-white mb-4">Calendar View</h1>
-              <p className="text-gray-400">Calendar functionality coming soon...</p>
-            </div>
-          } 
+            <ProtectedRoute>
+              <CalendarPage />
+            </ProtectedRoute>
+          }
         />
 
         <Route 
