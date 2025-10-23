@@ -63,15 +63,17 @@ from sqlalchemy.orm import joinedload
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
-# CORS middleware for frontend integration
+# Allow requests from React dev server
+origins = [
+    "http://localhost:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600
+    allow_origins=origins,              # or ["*"] to allow all origins (not recommended for production)
+    allow_credentials=True,
+    allow_methods=["*"],                # Allow all HTTP methods
+    allow_headers=["*"],                # Allow all headers
 )
 
 # JWT configuration
