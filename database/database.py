@@ -5,31 +5,35 @@ import os
 from dotenv import load_dotenv
 import urllib.parse
 
-# Load environment variables from .env file
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
+# Load environment variables from .env file in backend directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend', '.env'))
 
 # Database URL format:
 # mysql+pymysql://<username>:<password>@<host>:<port>/<database_name>
 
-DB_USER = 'root'
-DB_PASSWORD = urllib.parse.quote('DemoN@33#')
+# Root credentials for database creation
+ROOT_USER = 'root'
+ROOT_PASSWORD = urllib.parse.quote('DemoN@33#')
+
+DB_USER = os.getenv('DB_USER', 'training_user')
+DB_PASSWORD = os.getenv('DB_PASSWORD', 'training_password')
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = os.getenv('DB_PORT', '3306')
 DB_NAME = os.getenv('DB_NAME', 'training_app')
 
 # Check if DB_PASSWORD is set
-if not os.getenv('DB_PASSWORD'):
+if not DB_PASSWORD:
     raise ValueError("DB_PASSWORD environment variable is not set. Please set it in the .env file in the backend directory.")
 
-# Create database if it doesn't exist
-temp_db_url = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/"
+# Create database if it doesn't exist using root credentials
+temp_db_url = f"mysql+pymysql://{ROOT_USER}:{ROOT_PASSWORD}@{DB_HOST}:{DB_PORT}/"
 temp_engine = create_engine(temp_db_url, pool_pre_ping=True)
 with temp_engine.connect() as conn:
     conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}"))
     conn.commit()
 temp_engine.dispose()
 
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{urllib.parse.quote(DB_PASSWORD)}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 engine = create_engine(
     DATABASE_URL,

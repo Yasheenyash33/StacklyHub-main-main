@@ -11,7 +11,7 @@ connection = pymysql.connect(
 try:
     with connection.cursor() as cursor:
         # Read the SQL file
-        with open('setup_mysql.sql', 'r') as file:
+        with open('database/setup_mysql.sql', 'r') as file:
             sql_script = file.read()
         
         # Split the script into individual statements
