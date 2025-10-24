@@ -53,6 +53,7 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUsers([]);
     setSessions([]);
+    setNotifications([]);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     if (ws) {
@@ -242,6 +243,17 @@ export function AuthProvider({ children }) {
             .then(res => res.json())
             .then(data => setAssignments(data))
             .catch(err => console.error('Error fetching assignments:', err));
+          break;
+        case 'notification':
+          // Add notification if it's for the current user
+          if (user && message.data.user_id === user.id) {
+            setNotifications(prev => [{
+              id: Date.now(), // Simple ID generation
+              ...message.data,
+              read: false,
+              timestamp: new Date(message.data.timestamp)
+            }, ...prev]);
+          }
           break;
         default:
           console.warn('Unknown WebSocket message type:', message.type);
@@ -638,6 +650,13 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Mark notification as read function
+  const markNotificationAsRead = useCallback((notificationId) => {
+    setNotifications(prev => prev.map(n =>
+      n.id === notificationId ? { ...n, read: true } : n
+    ));
+  }, []);
+
   // Provide context value
   const value = {
     user,
@@ -660,6 +679,7 @@ export function AuthProvider({ children }) {
     deleteSession,
     assignStudent,
     unassignStudent,
+    markNotificationAsRead,
     fetchInitialData,
   };
 

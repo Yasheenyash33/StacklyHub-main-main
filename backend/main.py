@@ -717,6 +717,16 @@ async def add_trainee_to_session(session_id: int, trainee_id: int, db: Session =
     if not added:
         raise HTTPException(status_code=400, detail="Trainee already in session")
 
+    # Create notification for the trainee
+    notification_data = {
+        "type": "session_assigned",
+        "title": "New Session Assigned",
+        "message": f"You have been added to the session '{session.title}' scheduled for {session.scheduled_date.strftime('%B %d, %Y at %I:%M %p')}",
+        "user_id": trainee_id,
+        "session_id": session_id,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
     # Broadcast session update event
     await manager.broadcast({
         "type": "trainee_added_to_session",
@@ -725,6 +735,12 @@ async def add_trainee_to_session(session_id: int, trainee_id: int, db: Session =
             "trainee_id": trainee_id,
             "updated_at": session.updated_at.isoformat()
         }
+    })
+
+    # Broadcast notification to the trainee
+    await manager.broadcast({
+        "type": "notification",
+        "data": notification_data
     })
 
     return {"message": "Trainee added to session"}

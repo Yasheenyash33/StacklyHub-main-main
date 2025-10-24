@@ -1,20 +1,27 @@
 import React from 'react';
-import { Bell, Clock, ExternalLink } from 'lucide-react';
+import { Bell, Clock, ExternalLink, BookOpen } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 export function NotificationDropdown({ onClose }) {
-  const { notifications, markNotificationAsRead } = useAuth();
+  const { notifications, markNotificationAsRead, sessions } = useAuth();
 
   const handleNotificationClick = (notification) => {
     markNotificationAsRead(notification.id);
-    
+
     if (notification.type === 'session-reminder' && notification.session?.classLink) {
       window.open(notification.session.classLink, '_blank');
       toast.success('Joining session...');
+    } else if (notification.type === 'session_assigned') {
+      // Find the session and open class link if available
+      const session = sessions.find(s => s.id === notification.session_id);
+      if (session?.classLink) {
+        window.open(session.classLink, '_blank');
+        toast.success('Joining session...');
+      }
     }
-    
+
     onClose();
   };
 
@@ -46,6 +53,8 @@ export function NotificationDropdown({ onClose }) {
                 <div className="flex-shrink-0">
                   {notification.type === 'session-reminder' ? (
                     <Clock className="h-5 w-5 text-green-400" />
+                  ) : notification.type === 'session_assigned' ? (
+                    <BookOpen className="h-5 w-5 text-blue-400" />
                   ) : (
                     <Bell className="h-5 w-5 text-blue-400" />
                   )}
@@ -63,7 +72,7 @@ export function NotificationDropdown({ onClose }) {
                         {format(notification.timestamp, 'MMM d, h:mm a')}
                       </p>
                     </div>
-                    {notification.session?.classLink && (
+                    {(notification.session?.classLink || (notification.type === 'session_assigned' && sessions.find(s => s.id === notification.session_id)?.classLink)) && (
                       <ExternalLink className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
                     )}
                   </div>
