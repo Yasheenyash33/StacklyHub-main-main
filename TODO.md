@@ -1,15 +1,8 @@
-# Training Session Implementation TODO
+# TODO: Remove Password for Database User
 
-## Backend Changes
-- [x] Add notification creation logic in backend/main.py when trainee is added to session
-- [x] Broadcast notification via WebSocket
-
-## Frontend Changes
-- [x] Implement notification state management in AuthContext.jsx
-- [x] Update NotificationDropdown.jsx to display notifications
-- [x] Ensure dashboards reflect real-time updates via WebSocket
-
-## Testing
-- [x] Test session creation and trainee addition
-- [x] Verify notifications appear for trainees
-- [x] Confirm dashboard updates in real-time
+- [x] Modify database/database.py: Change default DB_PASSWORD to '', remove the raise if not set.
+- [x] Modify database/setup_mysql.sql: Change password to ''.
+- [x] Modify scripts/setup_db.py: Change password to ''.
+- [x] Modify scripts/test_connect.py: Remove password parameter.
+- [x] Run python scripts/setup_db.py to update the user in MySQL.
+- [x] Test connection with python scripts/test_connect.py.

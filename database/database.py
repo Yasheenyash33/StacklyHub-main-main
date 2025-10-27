@@ -15,15 +15,11 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)),
 ROOT_USER = 'root'
 ROOT_PASSWORD = urllib.parse.quote('DemoN@33#')
 
-DB_USER = os.getenv('DB_USER', 'training_user')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'training_password')
+DB_USER = 'training_user'
+DB_PASSWORD = ''  # No password
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = os.getenv('DB_PORT', '3306')
 DB_NAME = os.getenv('DB_NAME', 'training_app')
-
-# Check if DB_PASSWORD is set
-if not DB_PASSWORD:
-    raise ValueError("DB_PASSWORD environment variable is not set. Please set it in the .env file in the backend directory.")
 
 # Create database if it doesn't exist using root credentials
 temp_db_url = f"mysql+pymysql://{ROOT_USER}:{ROOT_PASSWORD}@{DB_HOST}:{DB_PORT}/"

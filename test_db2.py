@@ -4,7 +4,7 @@ try:
     connection = pymysql.connect(
         host='localhost',
         user='training_user',
-        password='',
+        # no password
         database='training_app',
         cursorclass=pymysql.cursors.DictCursor
     )
