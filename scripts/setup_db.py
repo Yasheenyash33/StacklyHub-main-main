@@ -31,7 +31,7 @@ try:
             print(f"Drop user failed: {e}")
 
         try:
-            cursor.execute("CREATE USER 'training_user'@'localhost' IDENTIFIED WITH mysql_native_password BY 'DemoN@33#';")
+            cursor.execute("CREATE USER 'training_user'@'localhost' IDENTIFIED WITH mysql_native_password BY '';")
             print("Created user with mysql_native_password")
         except Exception as e:
             print(f"Create user failed: {e}")
