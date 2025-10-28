@@ -13,7 +13,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)),
 
 # Root credentials for database creation
 ROOT_USER = 'root'
-ROOT_PASSWORD = ''
+ROOT_PASSWORD = 'DemoN@33#'
 
 DB_USER = 'training_user'
 DB_PASSWORD = ''  # No password
@@ -22,7 +22,7 @@ DB_PORT = os.getenv('DB_PORT', '3306')
 DB_NAME = os.getenv('DB_NAME', 'training_app')
 
 # Create database if it doesn't exist using root credentials
-temp_db_url = f"mysql+pymysql://{ROOT_USER}:{ROOT_PASSWORD}@{DB_HOST}:{DB_PORT}/"
+temp_db_url = f"mysql+pymysql://{ROOT_USER}:{urllib.parse.quote(ROOT_PASSWORD)}@{DB_HOST}:{DB_PORT}/"
 temp_engine = create_engine(temp_db_url, pool_pre_ping=True)
 with temp_engine.connect() as conn:
     conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}"))
