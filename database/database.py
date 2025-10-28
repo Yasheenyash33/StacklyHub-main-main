@@ -13,7 +13,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)),
 
 # Root credentials for database creation
 ROOT_USER = 'root'
-ROOT_PASSWORD = urllib.parse.quote('DemoN@33#')
+ROOT_PASSWORD = ''
 
 DB_USER = 'training_user'
 DB_PASSWORD = ''  # No password

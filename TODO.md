@@ -1,3 +1,4 @@
-# TODO: Remove Password from Database Setup
+# TODO: Remove Database Authentication
 
-- [x] Update scripts/setup_db.py to create 'training_user' without a password (change BY 'DemoN@33#' to BY '')
+- [x] Set ROOT_PASSWORD = '' in database/database.py
+- [x] Set password='' in scripts/setup_db.py
