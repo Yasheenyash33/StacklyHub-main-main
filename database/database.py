@@ -2,8 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Database connection URL - no authentication required (empty password)
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://training_user:@localhost/training_app"
+# Database connection URL - no authentication required (no user or password specified)
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://localhost/training_app"
 
 # Create engine
 engine = create_engine(
