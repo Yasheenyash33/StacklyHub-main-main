@@ -46,11 +46,16 @@ export function TraineeDashboard() {
   ];
 
   const handleJoinSession = (session) => {
-    if (session.classLink) {
+    if (session.sessionLink) {
+      // Use the session link to join via backend
+      window.open(`${window.location.origin}/join/${session.sessionLink}`, '_blank');
+      toast.success('Joining session...');
+    } else if (session.classLink) {
+      // Fallback to direct class link if no session link
       window.open(session.classLink, '_blank');
       toast.success('Joining session...');
     } else {
-      toast.error('Class link not available');
+      toast.error('Session link not available');
     }
   };
 

@@ -56,6 +56,7 @@ class SessionBase(BaseModel):
     duration_minutes: int
     status: SessionStatus = SessionStatus.scheduled
     class_link: Optional[str] = None
+    session_link: Optional[str] = None
 
 class SessionCreate(SessionBase):
     pass
@@ -69,6 +70,7 @@ class SessionUpdate(BaseModel):
     duration_minutes: Optional[int] = None
     status: Optional[SessionStatus] = None
     class_link: Optional[str] = None
+    session_link: Optional[str] = None
 
     class Config:
         extra = 'ignore'
@@ -91,6 +93,7 @@ class SessionWithTrainees(BaseModel):
     duration_minutes: int
     status: SessionStatus
     class_link: Optional[str] = None
+    session_link: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

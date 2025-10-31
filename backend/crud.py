@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import secrets
 import string
 import pytz
+import uuid
 
 from database import models
 from backend import schemas
@@ -175,6 +176,14 @@ def get_sessions_by_trainee(db: Session, trainee_id: int):
 def get_sessions_by_status(db: Session, status: models.SessionStatus):
     return db.query(models.Session).filter(models.Session.status == status).all()
 
+def generate_unique_session_link():
+    """Generate a unique session link using UUID."""
+    return str(uuid.uuid4())
+
+def get_session_by_session_link(db: Session, session_link: str):
+    """Get session by session_link."""
+    return db.query(models.Session).filter(models.Session.session_link == session_link).first()
+
 def create_session(db: Session, session: schemas.SessionCreate):
     session_data = session.dict()
     trainees = session_data.pop('trainees', [])
@@ -186,6 +195,10 @@ def create_session(db: Session, session: schemas.SessionCreate):
 
     session_data['created_at'] = now_ist
     session_data['updated_at'] = now_ist
+
+    # Generate unique session link if not provided
+    if not session_data.get('session_link'):
+        session_data['session_link'] = generate_unique_session_link()
 
     db_session = models.Session(**session_data)
     db.add(db_session)

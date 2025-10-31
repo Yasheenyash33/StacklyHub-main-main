@@ -35,11 +35,16 @@ export function SessionManagement() {
   };
 
   const handleJoinSession = (session) => {
-    if (session.class_link) {
+    if (session.session_link) {
+      // Use the session link to join via backend
+      window.open(`${window.location.origin}/join/${session.session_link}`, '_blank');
+      toast.success('Joining session...');
+    } else if (session.class_link) {
+      // Fallback to direct class link if no session link
       window.open(session.class_link, '_blank');
       toast.success('Joining session...');
     } else {
-      toast.error('Class link not available');
+      toast.error('Session link not available');
     }
   };
 

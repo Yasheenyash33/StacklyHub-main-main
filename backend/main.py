@@ -876,6 +876,70 @@ async def favicon():
         media_type='image/x-icon'
     )
 
+# Session join via link endpoint
+@app.get("/join/{session_link}")
+async def join_session_via_link(session_link: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # Only trainees can join via link
+    if current_user.role.value != "trainee":
+        raise HTTPException(status_code=403, detail="Only trainees can join sessions via link")
+
+    # Find session by session_link
+    session = crud.get_session_by_session_link(db, session_link)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Check if session is scheduled (only allow joining scheduled sessions)
+    if session.status != models.SessionStatus.scheduled:
+        raise HTTPException(status_code=400, detail="Session is not available for joining")
+
+    # Check if trainee is already assigned to this session
+    existing_assignment = db.query(models.SessionTrainee).filter(
+        models.SessionTrainee.session_id == session.id,
+        models.SessionTrainee.trainee_id == current_user.id
+    ).first()
+
+    if not existing_assignment:
+        # Add trainee to session
+        crud.add_trainee_to_session(db, session.id, current_user.id)
+
+        # Broadcast notification
+        await manager.broadcast({
+            "type": "trainee_joined_via_link",
+            "data": {
+                "session_id": session.id,
+                "trainee_id": current_user.id,
+                "session_link": session_link,
+                "message": f"Trainee {current_user.name} joined session '{session.title}' via link"
+            }
+        })
+
+    # Redirect to class_link if available
+    if session.class_link:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Successfully joined session",
+                "session": {
+                    "id": session.id,
+                    "title": session.title,
+                    "class_link": session.class_link
+                },
+                "redirect_to": session.class_link
+            }
+        )
+    else:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Successfully joined session",
+                "session": {
+                    "id": session.id,
+                    "title": session.title
+                },
+                "note": "No class link available for this session"
+            }
+        )
+
 # Root endpoint
 @app.get("/")
 def root():

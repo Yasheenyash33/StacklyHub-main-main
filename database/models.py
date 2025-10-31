@@ -48,6 +48,7 @@ class Session(Base):
     duration_minutes = Column(Integer, nullable=False)
     status = Column(Enum(SessionStatus), default=SessionStatus.scheduled, index=True)
     class_link = Column(String(500))
+    session_link = Column(String(100), unique=True, index=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
